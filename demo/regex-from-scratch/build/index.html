@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contents · A Regex Engine From Scratch</title>
+<title>Cover · A Regex Engine From Scratch</title>
 <script>
 (function(){try{var t=localStorage.getItem("techbook-theme");
 if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
@@ -11,40 +11,114 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <link rel="stylesheet" href="assets/book.css">
 
 </head>
-<body>
+<body class="cover-page">
 <a class="skip" href="#main">Skip to content</a>
 <header class="masthead">
-  <span class="crumb"><a href="index.html">A Regex Engine From Scratch</a> &nbsp;›&nbsp; Contents</span>
+  <span class="crumb"><a class="book" href="index.html">A Regex Engine From Scratch</a><span class="sep"> &nbsp;·&nbsp; </span>Cover</span>
   <span class="spacer"></span>
-  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button">Auto</button>
-</header>
-<div id="progress"></div>
-<div class="shell">
-<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+  <span class="section" id="running-section"></span>
+  <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
 <li><a href="ch01-matching-by-hand.html"><span class="chap-num">1</span>Matching by Hand</a>
 </li>
 <li><a href="ch02-pattern-to-machine.html"><span class="chap-num">2</span>From Pattern to Machine</a>
 </li>
-<li><a href="ch03-all-paths-at-once.html"><span class="chap-num">3</span>All Paths at Once</a>
-</li>
-</ol></nav>
-<main id="main" class="cover">
-<h1>A Regex Engine From Scratch</h1>
-<p class="subtitle">Building a working matcher in 200 lines of Python, and understanding why it is fast</p>
-
-<h2>Contents</h2>
-<ol class="contents">
-<li><a href="ch01-matching-by-hand.html"><span class="n">1</span><span class="t">Matching by Hand<span class="blurb"><span class="newthought">Here is a regular expression</span> that will hang your program. Not for a long time. Forever, on a modern machine, for an in…</span></span></a></li>
-<li><a href="ch02-pattern-to-machine.html"><span class="n">2</span><span class="t">From Pattern to Machine<span class="blurb"><span class="newthought">The matcher in chapter 1</span> re-read the pattern string on every recursive call, deciding afresh each time whether it was…</span></span></a></li>
-<li><a href="ch03-all-paths-at-once.html"><span class="n">3</span><span class="t">All Paths at Once<span class="blurb"><span class="newthought">Chapter 1's matcher</span> committed to one interpretation of the pattern and unwound when it failed. Chapter 2 built a machi…</span></span></a></li>
 </ol>
-<p style="margin-top:2.5rem"><a href="book.html">Read as a single page</a> — everything in one file, for offline reading, search across the whole book, or printing.</p>
+<ol class="extras"><li><a href="glossary.html">Glossary</a></li></ol>
+</nav></details>
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
+</header>
+<section class="cover-hero">
+<div class="cover-art" aria-hidden="true"><svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cover-title">
+  <title id="cover-title">The pattern (a|b)*c as a Thompson machine: a split state fans out to a and b, both loop back, and c leads to match</title>
+  <defs>
+    <marker id="arrow-cover" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dia-muted)"/>
+    </marker>
+  </defs>
+  <g font-family="var(--font-code)" font-size="22" fill="var(--dia-muted)" text-anchor="middle">
+    <text x="400" y="30">( a | b ) * c</text>
+  </g>
+  <!-- states -->
+  <g fill="var(--dia-fill)" stroke="var(--dia-fg)" stroke-width="1.5">
+    <circle cx="104" cy="184" r="28"/>
+    <circle cx="256" cy="184" r="28"/>
+    <circle cx="408" cy="112" r="28"/>
+    <circle cx="408" cy="256" r="28"/>
+    <circle cx="560" cy="184" r="28"/>
+  </g>
+  <circle cx="712" cy="184" r="28" fill="var(--dia-fill)" stroke="var(--dia-accent)" stroke-width="2.5"/>
+  <circle cx="712" cy="184" r="20" fill="none" stroke="var(--dia-accent)" stroke-width="1.5"/>
+  <!-- labels -->
+  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)" text-anchor="middle" dominant-baseline="middle">
+    <text x="104" y="184">start</text>
+    <text x="256" y="184">split</text>
+    <text x="408" y="112" font-family="var(--font-code)" font-size="16">a</text>
+    <text x="408" y="256" font-family="var(--font-code)" font-size="16">b</text>
+    <text x="560" y="184" font-family="var(--font-code)" font-size="16">c</text>
+    <text x="712" y="184">match</text>
+  </g>
+  <!-- edges -->
+  <g stroke="var(--dia-muted)" stroke-width="1.5" fill="none" marker-end="url(#arrow-cover)">
+    <path d="M 132 184 L 222 184"/>
+    <path d="M 276 164 L 380 120"/>
+    <path d="M 276 204 L 380 248"/>
+    <path d="M 284 184 L 526 184"/>
+    <path d="M 588 184 L 678 184"/>
+  </g>
+  <!-- loops back to split -->
+  <g stroke="var(--dia-accent)" stroke-width="1.5" fill="none" marker-end="url(#arrow-cover)">
+    <path d="M 424 88 C 440 40, 232 40, 248 152"/>
+    <path d="M 424 280 C 440 328, 232 328, 248 216"/>
+  </g>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-accent)" text-anchor="middle">
+    <text x="336" y="70">both, at once</text>
+    <text x="336" y="316">and again</text>
+  </g>
+</svg></div>
+<div class="cover-text">
+<h1>A Regex Engine From Scratch</h1>
+<p class="subtitle">Build a working matcher in 200 lines of Python, then make it one that cannot blow up</p>
+<p class="byline">Filipe Lima · First edition · September 2026</p>
+</div>
+</section>
+<div class="shell">
+<main id="main" class="cover">
+<p class="cover-cta"><a href="ch01-matching-by-hand.html">Begin with chapter 1 →</a><a href="#contents">Contents</a></p>
+<h2 id="contents">Contents</h2>
+<ol class="contents">
+<li><a href="ch01-matching-by-hand.html"><span class="n">1</span><span class="t">Matching by Hand<span class="blurb">Seven characters of pattern, twenty-four characters of text, and Python's own regular expression engine needs half a second to answer "no". Listing 1-1 asks (a+…</span></span></a></li>
+<li><a href="ch02-pattern-to-machine.html"><span class="n">2</span><span class="t">From Pattern to Machine<span class="blurb">Hand (ab)* to the matcher from chapter 1 and it goes looking for a literal open parenthesis. match_here reads the pattern one character at a time, and the only…</span></span></a></li>
+</ol>
+<p class="extras-link"><a href="glossary.html">Glossary</a> — every term the book introduces, with the chapter that defines it.</p>
+<h2 id="who-this-book-is-for"><a class="anchor" href="#who-this-book-is-for" aria-label="Link to this section">#</a>Who this book is for</h2>
+
+<p>You write regular expressions every week. You have shipped one that hung a service, or read a post-mortem about someone who did, and you would like to know why the same pattern that runs in a millisecond on one input runs forever on another. You are comfortable in Python: functions, recursion, dataclasses, slicing. You have never taken a course in automata theory and are not going to take one now.</p>
+
+<h2 id="who-it-is-not-for"><a class="anchor" href="#who-it-is-not-for" aria-label="Link to this section">#</a>Who it is not for</h2>
+
+<p>If you want to learn regex <em>syntax</em>, this is the wrong book; it uses a subset of eight constructs and never explains <code>\b</code> or lookbehind. If you need a production engine with Unicode, capture groups and backreferences, this book explains why those are hard and points you at the engines that do them, but it does not build them.</p>
+
+<h2 id="what-you-will-build"><a class="anchor" href="#what-you-will-build" aria-label="Link to this section">#</a>What you will build</h2>
+
+<p>A small package, <code>tinyre</code>, in four steps. Chapter 1 writes a matcher the way Rob Pike did, recursively, and measures the cliff it falls off. Chapter 2 parses patterns into a tree and compiles the tree into a machine. Chapter 3 runs that machine so that every alternative is explored at once, in time proportional to the input. Chapter 4 tests it against Python's own engine and says honestly what was given up.</p>
+
+<p>Every listing in this book was executed before it was published, and every output block is what the code printed. The badge in each listing's header says which kind of check it passed:</p>
+
+<div class="table-wrap"><table><thead><tr><th>Badge</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>verified</strong></td><td>ran, exited 0, and the output shown is the real output</td></tr><tr><td><strong>error demo</strong></td><td>ran and failed on purpose; the error shown is the real error</td></tr><tr><td><strong>illustrative</strong></td><td>an exercise stub or a fragment; not executable by design</td></tr></tbody></table></div>
+
+<h2 id="how-to-read-it"><a class="anchor" href="#how-to-read-it" aria-label="Link to this section">#</a>How to read it</h2>
+
+<p>In order. Each chapter assumes the one before it, and the warm-up questions at the top of chapters 2 to 4 reach back deliberately. Work the predict-then-reveal boxes before you open them: the point of them is the moment you commit to an answer. The exercises climb a ladder from filling one blank to writing something new; if the last rung is too far, the third is enough.</p>
+
+<p>A term in <strong>bold</strong> is being defined at that point, and every defined term is in the glossary with the chapter that owns it.</p>
+<p class="single-link"><a href="book.html">Read as a single page</a> — one file, for offline reading, search across the whole book, or printing.</p>
 </main>
 </div>
 <dialog id="search" aria-label="Search the book">
-  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
   <ul id="search-results"></ul>
 </dialog>
+<script src="assets/search.js"></script>
 <script src="assets/book.js"></script>
 </body></html>

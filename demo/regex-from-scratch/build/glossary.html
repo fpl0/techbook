@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary · A Regex Engine From Scratch</title>
+<script>
+(function(){try{var t=localStorage.getItem("techbook-theme");
+if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/book.css">
+
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <span class="crumb"><a class="book" href="index.html">A Regex Engine From Scratch</a><span class="sep"> &nbsp;·&nbsp; </span>Glossary</span>
+  <span class="spacer"></span>
+  <span class="section" id="running-section"></span>
+  <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+<li><a href="ch01-matching-by-hand.html"><span class="chap-num">1</span>Matching by Hand</a>
+</li>
+<li><a href="ch02-pattern-to-machine.html"><span class="chap-num">2</span>From Pattern to Machine</a>
+</li>
+</ol>
+<ol class="extras"><li><a href="glossary.html" aria-current="page">Glossary</a></li></ol>
+</nav></details>
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
+</header>
+<div class="shell">
+<main id="main">
+<h1>Glossary</h1>
+<p>Every term the book introduces, in alphabetical order, with the chapter that defines it.</p>
+<dl class="glossary">
+<dt id="term-abstract-syntax-tree">abstract syntax tree</dt><dd>the tree a pattern parses into, one node per construct with its operands as children and no record of the parentheses <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-backtracking">backtracking</dt><dd>a search strategy in which each choice point keeps its untried alternatives and a failure returns control to the nearest one that still has some <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-catastrophic-backtracking">catastrophic backtracking</dt><dd>the failing case of a backtracking matcher whose cost grows exponentially with the input <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-continuation-style">continuation style</dt><dd>this book's name for compiling each node with the state that follows it already in hand, so that no arrow is ever left dangling <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-fragment">fragment</dt><dd>a sub-machine with one entry and one exit, produced by compiling one node <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-give-back">give back</dt><dd>a star surrendering one character of its run so the rest of the pattern can try again <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-match-state">match state</dt><dd>the state with no arrows, whose occupation at the end of the text means the pattern matched <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-match-here">match_here</dt><dd>the recursive core of the matcher, which asks only whether the pattern matches at the start of the text <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-polynomial-blow-up">polynomial blow-up</dt><dd>the failing case of adjacent quantifiers, whose cost grows as a power of the input equal to the number of quantifiers <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-precedence-level">precedence level</dt><dd>one row of the operator-binding order, which in a recursive-descent parser is one method <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-recursive-descent">recursive descent</dt><dd>a parser made of one function per grammar rule, each calling the rules it depends on <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-split-state">split state</dt><dd>a state with two arrows and no character, which the machine follows both at once <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-star-height">star height</dt><dd>the deepest nesting of stars or pluses in a pattern <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-state">state</dt><dd>a node of the machine, holding at most one character and at most two arrows <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-thompsons-construction">Thompson&#x27;s construction</dt><dd>the wiring of fragments into a machine with one state per character or metacharacter, from Thompson's 1968 paper <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+</dl>
+</main>
+</div>
+<dialog id="search" aria-label="Search the book">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
+  <ul id="search-results"></ul>
+</dialog>
+<script src="assets/search.js"></script>
+<script src="assets/book.js"></script>
+</body></html>

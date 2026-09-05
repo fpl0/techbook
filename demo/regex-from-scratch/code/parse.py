@@ -1,64 +1,61 @@
-from dataclasses import dataclass
-
-
-@dataclass
-class Char:  c: str
-@dataclass
-class Dot:   pass
-@dataclass
-class Star:  inner: object
-@dataclass
-class Cat:   left: object; right: object
-@dataclass
-class Alt:   left: object; right: object
+"""Recursive descent, one method per precedence level: alt < concat < repeat < atom."""
+from nodes import Char, Dot, Concat, Alt, Repeat
 
 
 class Parser:
-    def __init__(self, src):
-        self.src, self.i = src, 0
+    def __init__(self, pattern):
+        self.src = pattern
+        self.pos = 0
 
     def peek(self):
-        return self.src[self.i] if self.i < len(self.src) else None
+        return self.src[self.pos] if self.pos < len(self.src) else None
+
+    def take(self):
+        ch = self.peek()
+        self.pos += 1
+        return ch
 
     def parse(self):
-        node = self.alternation()
-        if self.i != len(self.src):
-            raise SyntaxError(f"unexpected {self.peek()!r} at {self.i}")
+        node = self.alt()
+        if self.peek() is not None:
+            raise SyntaxError(f"unexpected {self.peek()!r} at {self.pos}")
         return node
 
-    def alternation(self):
-        node = self.concatenation()
+    def alt(self):
+        node = self.concat()
         while self.peek() == "|":
-            self.i += 1
-            node = Alt(node, self.concatenation())
+            self.take()
+            node = Alt(node, self.concat())
         return node
 
-    def concatenation(self):
-        node = None
+    def concat(self):
+        node = self.repeat()
         while self.peek() not in (None, "|", ")"):
-            atom = self.repeat()
-            node = atom if node is None else Cat(node, atom)
+            node = Concat(node, self.repeat())
         return node
 
     def repeat(self):
         node = self.atom()
-        while self.peek() == "*":
-            self.i += 1
-            node = Star(node)
+        if self.peek() in ("*", "+", "?"):
+            op = self.take()
+            node = Repeat(node, min=1 if op == "+" else 0, many=op != "?")
+        if self.peek() in ("*", "+", "?"):
+            raise SyntaxError(f"multiple repeat at {self.pos}")
         return node
 
     def atom(self):
-        c = self.peek()
-        if c == "(":
-            self.i += 1
-            node = self.alternation()
-            if self.peek() != ")":
-                raise SyntaxError("unclosed (")
-            self.i += 1
+        ch = self.take()
+        if ch == "(":
+            node = self.alt()
+            if self.take() != ")":
+                raise SyntaxError("missing )")
             return node
-        self.i += 1
-        return Dot() if c == "." else Char(c)
+        if ch == ".":
+            return Dot()
+        if ch is None or ch in "|)*+?":
+            raise SyntaxError(f"expected a character, got {ch!r} at {self.pos - 1}")
+        return Char(ch)
 
 
-print(Parser("a*b").parse())
-print(Parser("a|b").parse())
+def parse(pattern):
+    return Parser(pattern).parse()

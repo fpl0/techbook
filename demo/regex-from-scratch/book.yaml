@@ -1,8 +1,12 @@
 title: A Regex Engine From Scratch
-subtitle: Building a working matcher in 200 lines of Python, and understanding why it is fast
-audience: Working programmers who use regular expressions and have never implemented one
-prerequisites: Comfortable Python. No compiler or automata theory assumed.
+subtitle: Build a working matcher in 200 lines of Python, then make it one that cannot blow up
+author: Filipe Lima
+date: September 2026
+edition: First edition
+audience: Working programmers who use regular expressions daily and have never implemented one
+not_for: Readers wanting a regex syntax tutorial, or a production-grade engine with Unicode, captures and lookaround
+prerequisites: Comfortable Python (functions, recursion, dataclasses, slicing). No compiler or automata theory assumed.
 depth: brief
 language: python
-spine: A backtracking matcher, then a Thompson NFA simulator that cannot blow up
-non_goals: Unicode handling, capture groups, lookaround, regex flavours beyond a teaching subset
+spine: A regex library `tinyre` grown across the book, first a backtracking matcher, then a parser and compiler to a Thompson NFA, then a simulator that runs in linear time, then a test-suite that checks it against Python's `re`
+non_goals: Unicode handling, capture groups, backreferences, lookaround, POSIX vs Perl semantics, regex flavours beyond the teaching subset (literal, dot, concatenation, star, plus, optional, alternation, parentheses)

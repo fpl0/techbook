@@ -1,36 +1,44 @@
-def add_state(prog, i, current, seen):
-    """Add state i to the set, expanding splits so the set holds no split states."""
-    if i in seen:
+"""Run the machine over the text, holding every live state at once."""
+
+
+def add_state(states, s, seen):
+    """Add `s`, following split states eagerly; `seen` breaks cycles."""
+    if s is None or id(s) in seen:
         return
-    seen.add(i)
-    state = prog.states[i]
-    if state["kind"] == SPLIT:
-        add_state(prog, state["a"], current, seen)
-        add_state(prog, state["b"], current, seen)
+    seen.add(id(s))
+    if s.ch is None and not s.matched:      # a split: take both arms
+        add_state(states, s.out, seen)
+        add_state(states, s.alt, seen)
     else:
-        current.add(i)
+        states.append(s)
 
 
-def simulate(prog, entry, text):
-    current = set()
-    add_state(prog, entry, current, set())
+def step(current, ch):
+    """Every state one character further on. A set, so no path is counted twice."""
+    following, seen = [], set()
+    for s in current:
+        if s.ch is not None and (s.ch == "." or s.ch == ch):
+            add_state(following, s.out, seen)
+    return following
+
+
+def fullmatch(start, text):
+    current = []
+    add_state(current, start, set())
     for ch in text:
-        nxt, seen = set(), set()
-        for i in current:
-            state = prog.states[i]
-            if state["kind"] == CONSUME and (state["c"] is None or state["c"] == ch):
-                add_state(prog, state["next"], nxt, seen)
-        current = nxt
+        current = step(current, ch)
         if not current:
             return False
-    return any(prog.states[i]["kind"] == MATCH for i in current)
+    return any(s.matched for s in current)
 
 
-def full_match(pattern, text):
-    prog, entry = compile_pattern(pattern)
-    return simulate(prog, entry, text)
-
-
-for p, t in [("a*b", "aaab"), ("a*b", "aaac"), ("a|b", "b"), ("(ab)*", "ababab"),
-             ("a.c", "axc"), ("a*", "")]:
-    print(f"{p:8} {t!r:10} {full_match(p, t)}")
+def search(start, text):
+    """Unanchored: re-enter the start state before every character."""
+    current, seen = [], set()
+    add_state(current, start, seen)
+    for ch in text:
+        if any(s.matched for s in current):
+            return True
+        current = step(current, ch)
+        add_state(current, start, {id(s) for s in current})
+    return any(s.matched for s in current)
