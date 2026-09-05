@@ -10,12 +10,16 @@ claims, and blocks the build if they disagree.
 ```
 Book verification · 2026-09-05
 ──────────────────────────────────────────────────────────────
-Blocks    17 total   (12 from cache)
-  OK             12
-  literal         5
+Blocks    31 total   (23 from cache)
+  OK             23
+  literal         8
 
 All code verified.
 ```
+
+<p align="center">
+  <img src="docs/cover.png" alt="The cover of the sample book: a navy jacket with a state-machine diagram and the title in a bold serif" width="720">
+</p>
 
 ## Why
 
@@ -28,11 +32,12 @@ implements what the evidence supports, and gates the output on something checkab
 ## Install
 
 ```sh
+git clone https://github.com/fpl0/techbook ~/Code/techbook
 ln -sfn ~/Code/techbook/skill ~/.claude/skills/techbook
 ```
 
-The symlink means edits to the repo take effect immediately. Restart Claude Code, or
-start a new session, for the skill to register.
+The symlink means edits to the clone take effect immediately. Start a new Claude
+Code session for the skill to register.
 
 **Requires:** Python 3.11+ (`verify.py` reads dependency manifests with `tomllib`;
 on 3.10 it says so and stops rather than silently pinning nothing), macOS for the
@@ -80,10 +85,19 @@ my-book/
 
 Code is syntax-highlighted at render time by `highlight.py`, so the colour is in
 the HTML: it survives JavaScript being off, printing, and reading from a folder.
-Each book names a palette and a face in `book.yaml` (`render.py --list-themes`), chosen for its topic and contrast-checked at build, so no two books look the same on the shelf. `book.html` inlines its CSS, JS and search index — zero external requests, so it works
+`book.html` inlines its CSS, JS and search index — zero external requests, so it works
 offline and prints to a usable PDF. No framework, no web fonts, no CDN, and the book
 stays readable with JavaScript disabled. Search works from `file://` because the
 index ships as a script, not something to fetch.
+
+Each book has its own look. `book.yaml` names one of eight palettes and one of five
+system serif faces, chosen for the topic during the scope interview, and `render.py`
+checks every colour pairing for WCAG AA contrast before it will build. Two books from
+this skill share a typographic system, not a jacket.
+
+<p align="center">
+  <img src="docs/chapter.png" alt="A chapter page: a single serif column, a numbered listing with syntax highlighting, and a verified tag on its caption" width="720">
+</p>
 
 ## The scripts
 
@@ -191,9 +205,11 @@ Three choices where the research points away from the obvious answer:
 
 ```
 skill/            SKILL.md, references (7 files), assets (book.css, book.js), scripts (6)
-skill/evals/      4 evals, 23 assertions
+skill/evals/      4 evals, 24 assertions
 fixtures/         good / bad / rich — regression fixtures for the scripts
 demo/             a real book built with the skill
+.critique/        the design-critic review the presentation was built against
+docs/             screenshots for this README
 ```
 
 `fixtures/bad` deliberately contains one of every contract violation; running

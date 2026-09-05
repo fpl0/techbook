@@ -58,8 +58,9 @@ build/
 ├── book.html           cover, front matter, every chapter and the glossary in one file
 ├── search.json         section-level index
 └── assets/
-    ├── book.css
-    └── book.js
+    ├── book.css        with the book's theme block appended
+    ├── book.js
+    └── search.js       the same index as a script, so search works from file://
 ```
 
 The cover reads `title`, `subtitle`, `author`, `date` and `edition` from
@@ -78,14 +79,14 @@ chapter 3, and its listings number `3-1`, `3-2`. Keep that convention.
 
 Hold these; they are why the book doesn't look like a docs site.
 
-0. **It is a book, not a website.** One centred column of serif text on paper-coloured ground, a right margin for sidenotes, a quiet italic running head, and the contents in a drawer rather than a permanent sidebar. No cards, no pills, no bordered buttons, no left rail. Labels are bold upright serif; the fonts have no real small caps, so the CSS never asks for them (synthesised small caps are the fastest way to look cheap). Section breaks are an ornament. The cover is a full-bleed jacket in one fixed oxblood with the title, subtitle, byline and art.
+0. **It is a book, not a website.** One centred column of serif text on paper-coloured ground, a right margin for sidenotes, a quiet italic running head, and the contents in a drawer rather than a permanent sidebar. No cards, no pills, no bordered buttons, no left rail. Labels are bold upright serif; the fonts have no real small caps, so the CSS never asks for them (synthesised small caps are the fastest way to look cheap). Section breaks are an ornament. The cover is a full-bleed jacket in the book's jacket colour with the title, subtitle, byline and art.
 1. **No framework, no web fonts, no build step, no network at read time.** System font stacks only. A book that needs a CDN is a book that breaks on a plane.
 2. **Fully readable with JavaScript disabled.** `book.js` adds theme memory, scrollspy, search, copy buttons and keyboard nav. It creates no content. Nothing in it is required to read the book.
 3. **Every colour is defined on bare `:root` first**, then overridden under `@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme="light"])`, then again under `:root[data-theme="dark"]` so the toggle wins both directions. A colour whose only definition lives inside a media query is a bug.
 4. **Wide content scrolls inside its own container.** Tables and code blocks get `overflow-x: auto`. The page body never scrolls horizontally.
-5. **One accent hue in the chrome.** Every link, label, marker and active state is the same oxblood (`--accent`). Additional colour has to earn its place — the warn colour for misconception callouts, the ok colour for tips and verified badges, and the code-token palette below are the only others.
-7. **Syntax highlighting is done at render time**, by `scripts/highlight.py`, with no JavaScript and no CDN. Eight token classes on a slightly muted base (`c` comment, `s` string, `n` number, `k` keyword, `t` type or builtin, `f` name being defined, `d` decorator or key, `p` prompt), which is the restraint the best-read books use: Crafting Interpreters colours eight classes on a grey base, and colouring only a few key elements beats washing the listing in colour. An unknown language gets comments, strings and numbers. Console listings dim the output lines and mark the prompt.
-6. **Print CSS is the PDF story.** No LaTeX, no TinyTeX. Chrome's print engine plus `@page` rules produces a good PDF; `<details>` are forced open, sidenotes fold inline, and URLs are printed after their links.
+5. **One accent hue in the chrome.** Every link, label, marker and active state is the same hue (`--accent`, set by the book's palette). Additional colour has to earn its place — the warn colour for misconception callouts, the ok colour for tips and verified badges, and the code-token palette below are the only others.
+6. **Syntax highlighting is done at render time**, by `scripts/highlight.py`, with no JavaScript and no CDN. Eight token classes on a slightly muted base (`c` comment, `s` string, `n` number, `k` keyword, `t` type or builtin, `f` name being defined, `d` decorator or key, `p` prompt), which is the restraint the best-read books use: Crafting Interpreters colours eight classes on a grey base, and colouring only a few key elements beats washing the listing in colour. An unknown language gets comments, strings and numbers. Console listings dim the output lines and mark the prompt.
+7. **Print CSS is the PDF story.** No LaTeX, no TinyTeX. Chrome's print engine plus `@page` rules produces a good PDF; `<details>` are forced open, sidenotes fold inline, and URLs are printed after their links.
 
 ## The typography, in numbers
 
@@ -94,7 +95,7 @@ a spec that disagrees with the stylesheet is a trap for the next editor.
 
 | Property | Value | Why |
 |---|---|---|
-| Prose font | Iowan Old Style → Palatino → Charter → Georgia | serif for sustained reading; all system-installed |
+| Prose font | Iowan Old Style → Palatino → Charter → Georgia (the default face; see below) | serif for sustained reading; all system-installed |
 | Headings | the same serif, bold; h3 bold italic; no uppercase anywhere | one family reads as a book; a sans heading reads as a website |
 | Chrome and captions | the same serif, italic or bold, never below 0.9rem | nothing on the page is smaller than 15px |
 | Code font | ui-monospace → SF Mono → Menlo | ligatures disabled — `!=` must not render as `≠` |
@@ -106,7 +107,7 @@ a spec that disagrees with the stylesheet is a trap for the next editor.
 | Code size | inline 0.88em, plain (no pill); listings 0.95rem, line-height 1.6, tab-size 4 | a listing beside 19px prose should not drop below 15px; inline code is marked by its face alone |
 | Light ground | `#1f1d1a` on `#faf8f2` | paper and ink; pure white on pure black is punishing |
 | Dark ground | `#d8d2c6` on `#151413` | stepped down from full brightness to avoid halation; code ground `#221f1c` is visible as a block |
-| Accent | `#8f3a2b` light · `#e0a48c` dark | one ink red for links, labels and marks; the jacket is a fixed `#7a3324` in both themes |
+| Accent | `#8f3a2b` light · `#e0a48c` dark (the default palette; see below) | one hue for links, labels and marks; the jacket `#7a3324` is the same in both themes |
 | Muted and faint text | `#5e5952` (6.5:1) · `#6b655b` (5.4:1) on paper | every secondary colour passes WCAG AA at the size it is used; comment tokens sit at 4.8:1 |
 | Small caps | real `smcp` only (`font-synthesis-small-caps: none`) | a fallback face without small caps shows lowercase rather than fakes |
 | Tables | content width, lining tabular figures | old-style figures turn "10" into "1o" in a column |

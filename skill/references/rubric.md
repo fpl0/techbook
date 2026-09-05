@@ -1,7 +1,7 @@
 # Editorial rubric
 
 `prose.py` catches tells. It cannot tell you whether a chapter is any good. This is
-the scored read that can, and the editing pass in phase 5 runs it per chapter.
+the scored read that can, and the editing step runs it per chapter.
 
 Score each dimension 1–5. **A chapter ships at 4 or above on every dimension.** A 3
 anywhere means another pass; a 2 means the chapter needs restructuring, not editing.

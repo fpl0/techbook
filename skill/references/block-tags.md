@@ -7,7 +7,7 @@ hard error** — not a silent skip.
 The reason for the strictness: `mdbook test` silently *tests* untagged blocks and
 `mdx` silently *skips* them, and in both cases the author cannot tell by looking at
 the page which examples were actually checked. A reader of this book can, because
-every listing renders with its verification status in the header bar.
+every listing renders with its verification status in its caption.
 
 ## Modes — exactly one per block
 

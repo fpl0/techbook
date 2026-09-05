@@ -11,7 +11,7 @@ house style, with every code example executed and verified before it ships.
 ## Paths
 
 - **Skill root**: `~/.claude/skills/techbook`
-- **Scripts**: `~/.claude/skills/techbook/scripts/{verify,prose,continuity,render,urlcheck}.py`
+- **Scripts**: `~/.claude/skills/techbook/scripts/{verify,prose,continuity,render,urlcheck}.py` (`highlight.py` is a module `render.py` imports)
 - **References**: `~/.claude/skills/techbook/references/`
 - **Assets**: `~/.claude/skills/techbook/assets/{book.css,book.js}`
 - **Book project**: `./<book-slug>/` in the current directory, unless the user names somewhere else
@@ -49,8 +49,9 @@ starting over. Say which phase you are resuming into.
    compilers is not a book on gardening data, and the two should not look the same
    on the shelf. Do not pick oxblood by default: it is the fallback for a book that
    never chose. Custom `accent:`, `accent_dark:` or `jacket:` hexes are allowed and
-   are contrast-checked at render; a failing hex stops the build. **Gate: show the user the brief and
-   get approval before researching.**
+   are contrast-checked at render; a failing hex stops the build.
+
+   **Gate: show the user the brief and get approval before researching.**
 
 2. **Research.** Decompose the brief into independent sub-topics — one per planned
    chapter, plus any cross-cutting concern. Dispatch **one subagent per sub-topic, in
@@ -154,7 +155,7 @@ starting over. Say which phase you are resuming into.
    **Maximum three repair rounds per chapter**, then stop and tell the user what is
    still broken. An unbounded fix loop burns hours and converges on nothing.
 
-6. **Edit, in stages, big to small.** Four passes, in this order. Each pass may only
+6. **Edit, in stages, big to small.** Six passes, in this order. Each pass may only
    do its own job.
 
    - **Structural.** Does each chapter do the job its outline contract states? Is the through-line intact? Does anything contradict an earlier chapter? Does terminology hold across the book?
