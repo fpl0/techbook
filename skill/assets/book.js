@@ -27,9 +27,25 @@
   function labelTheme(t) {
     var btn = document.getElementById("theme-toggle");
     if (btn) {
-      btn.textContent = t === "light" ? "Light" : t === "dark" ? "Dark" : "Auto";
-      btn.setAttribute("aria-label", "Theme: " + t + ". Click to change.");
+      var state = t === "light" ? "light" : t === "dark" ? "dark" : "automatic";
+      btn.textContent = "Theme";
+      btn.setAttribute("aria-label", "Colour scheme: " + state + ". Click to change.");
+      btn.setAttribute("title", "Colour scheme: " + state + ". Click to change.");
     }
+  }
+
+  /* ── print: open every <details>, then put them back ──────────────────── */
+  function wirePrint() {
+    window.addEventListener("beforeprint", function () {
+      document.querySelectorAll("details:not([open])").forEach(function (d) {
+        d.setAttribute("data-was-closed", ""); d.open = true;
+      });
+    });
+    window.addEventListener("afterprint", function () {
+      document.querySelectorAll("details[data-was-closed]").forEach(function (d) {
+        d.open = false; d.removeAttribute("data-was-closed");
+      });
+    });
   }
 
   /* ── copy buttons ──────────────────────────────────────────────────────── */
@@ -64,9 +80,9 @@
     });
   }
 
-  /* ── scrollspy + reading progress ──────────────────────────────────────── */
+  /* ── scrollspy: the running head shows the current section ─────────────── */
   function wireScroll() {
-    var bar = document.getElementById("progress");
+    var running = document.getElementById("running-section");
     var links = Array.prototype.slice.call(
       document.querySelectorAll('.toc a[href*="#"]'));
     var map = {};
@@ -81,12 +97,6 @@
     var ticking = false;
     function update() {
       ticking = false;
-      if (bar) {
-        var doc = document.documentElement;
-        var max = doc.scrollHeight - doc.clientHeight;
-        var pct = max > 0 ? (doc.scrollTop / max) * 100 : 0;
-        bar.style.width = Math.min(100, Math.max(0, pct)) + "%";
-      }
       if (!targets.length) return;
       var line = window.scrollY + (window.innerHeight * 0.28);
       var active = null;
@@ -96,6 +106,10 @@
       links.forEach(function (a) { a.removeAttribute("aria-current"); });
       if (active && map[active.id]) {
         map[active.id].setAttribute("aria-current", "location");
+      }
+      if (running) {
+        var label = active && active.tagName === "H2" ? active.textContent.replace(/^#\s*/, "").trim() : "";
+        if (running.textContent !== label) running.textContent = label;
       }
     }
     function onScroll() {
@@ -199,6 +213,8 @@
       }
     });
     dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+    var closeBtn = dlg.querySelector("button.close");
+    if (closeBtn) closeBtn.addEventListener("click", function () { dlg.close(); });
 
     document.addEventListener("keydown", function (e) {
       var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
@@ -232,6 +248,7 @@
     wireScroll();
     wireSearch();
     wireKeys();
+    wirePrint();
   }
 
   if (document.readyState === "loading") {

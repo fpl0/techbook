@@ -83,27 +83,33 @@ Hold these; they are why the book doesn't look like a docs site.
 2. **Fully readable with JavaScript disabled.** `book.js` adds theme memory, scrollspy, search, copy buttons and keyboard nav. It creates no content. Nothing in it is required to read the book.
 3. **Every colour is defined on bare `:root` first**, then overridden under `@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme="light"])`, then again under `:root[data-theme="dark"]` so the toggle wins both directions. A colour whose only definition lives inside a media query is a bug.
 4. **Wide content scrolls inside its own container.** Tables and code blocks get `overflow-x: auto`. The page body never scrolls horizontally.
-5. **One accent hue in the chrome.** Every link, rule, marker and active state is the same blue. Additional colour has to earn its place — the warn colour for misconception callouts, the ok colour for tips and verified badges, and the code-token palette below are the only others.
+5. **One accent hue in the chrome.** Every link, label, marker and active state is the same oxblood (`--accent`). Additional colour has to earn its place — the warn colour for misconception callouts, the ok colour for tips and verified badges, and the code-token palette below are the only others.
 7. **Syntax highlighting is done at render time**, by `scripts/highlight.py`, with no JavaScript and no CDN. Eight token classes on a slightly muted base (`c` comment, `s` string, `n` number, `k` keyword, `t` type or builtin, `f` name being defined, `d` decorator or key, `p` prompt), which is the restraint the best-read books use: Crafting Interpreters colours eight classes on a grey base, and colouring only a few key elements beats washing the listing in colour. An unknown language gets comments, strings and numbers. Console listings dim the output lines and mark the prompt.
 6. **Print CSS is the PDF story.** No LaTeX, no TinyTeX. Chrome's print engine plus `@page` rules produces a good PDF; `<details>` are forced open, sidenotes fold inline, and URLs are printed after their links.
 
 ## The typography, in numbers
 
+These are the shipped values in `book.css`. Change the CSS and this table together;
+a spec that disagrees with the stylesheet is a trap for the next editor.
+
 | Property | Value | Why |
 |---|---|---|
 | Prose font | Iowan Old Style → Palatino → Charter → Georgia | serif for sustained reading; all system-installed |
-| Headings | the same serif, bold; h3 bold italic | one family reads as a book; a sans heading reads as a website |
+| Headings | the same serif, bold; h3 bold italic; no uppercase anywhere | one family reads as a book; a sans heading reads as a website |
 | Chrome and captions | the same serif, italic or bold, never below 0.9rem | nothing on the page is smaller than 15px |
 | Code font | ui-monospace → SF Mono → Menlo | ligatures disabled — `!=` must not render as `≠` |
 | Body size | `clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem)` | 17px → 19px; books read larger than app UI |
-| Line height | 1.65 unitless | long measures want 1.6–1.7 |
-| Measure | 64ch | lands at 66–70 real characters per line in Iowan/Charter, inside the 50–75 band; WCAG caps at 80 |
-| Heading scale | 1.25 | h1 2.25rem, h2 1.6rem, h3 1.25rem, h4 1.0625rem uppercase |
-| Heading margins | top 2.2em, bottom 0.5em | a heading must attach to the text below it |
-| Code size | inline 0.875em; listings 0.9375rem, line-height 1.6, tab-size 4 | mono renders optically larger at equal px, but a listing beside 19px prose should not drop below 15px |
+| Line height | 1.6 unitless | long measures want 1.5–1.65 |
+| Measure | `56ch` | ≈70 characters per line in Iowan at 19px (Bringhurst's 66 ideal, 45–75 band); listings overhang the column by 1.1rem on wide screens |
+| Heading scale | h1 `clamp(2.1rem, …, 2.75rem)`, h2 1.5rem, h3 1.15rem italic, h4 1rem | quiet hierarchy; a chapter opener carries an italic "Chapter N" label above the h1 |
+| Heading margins | top 2.4em, bottom 0.6em | a heading must attach to the text below it |
+| Code size | inline 0.88em, plain (no pill); listings 0.95rem, line-height 1.6, tab-size 4 | a listing beside 19px prose should not drop below 15px; inline code is marked by its face alone |
 | Light ground | `#1f1d1a` on `#faf8f2` | paper and ink; pure white on pure black is punishing |
-| Dark ground | `#e9e4da` on `#151413` | same reasoning inverted, warm not blue |
+| Dark ground | `#d8d2c6` on `#151413` | stepped down from full brightness to avoid halation; code ground `#221f1c` is visible as a block |
 | Accent | `#8f3a2b` light · `#e0a48c` dark | one ink red for links, labels and marks; the jacket is a fixed `#7a3324` in both themes |
+| Muted and faint text | `#5e5952` (6.5:1) · `#6b655b` (5.4:1) on paper | every secondary colour passes WCAG AA at the size it is used; comment tokens sit at 4.8:1 |
+| Small caps | real `smcp` only (`font-synthesis-small-caps: none`) | a fallback face without small caps shows lowercase rather than fakes |
+| Tables | content width, lining tabular figures | old-style figures turn "10" into "1o" in a column |
 
 Only four heading levels are styled. If a chapter needs `h5`, the chapter is
 structured wrong.

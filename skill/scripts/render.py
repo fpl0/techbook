@@ -140,27 +140,23 @@ class Chapter:
 LISTING_TAGS = {
     "run": ("verified", "verified"),
     "check": ("verified", "compiles"),
-    "expect-error": ("error-demo", "error demo"),
+    "expect-error": ("error-demo", "raises, as intended"),
     "norun": ("unverified", "not run here"),
     "literal": ("unverified", "illustrative"),
 }
 
+# The book's main language, set by main(); a listing shows its language only
+# when it differs, because "python" on every block of a Python book is noise.
+DOMINANT_LANG = ""
+
 
 def render_listing(lang: str, mode: str, tags: dict, body: str,
                    number: str | None, expected: str | None) -> str:
+    """One exhibit: filename, code, its output, and a single caption beneath."""
     cls, label = LISTING_TAGS.get(mode, ("unverified", mode))
     filename = tags.get("file") or tags.get("filename")
     if isinstance(filename, str):
         filename = filename.split("#")[0]
-
-    bar = ['<figcaption class="bar">']
-    if filename:
-        bar.append(f'<span class="file">{html.escape(str(filename))}</span>')
-    bar.append(f'<span class="lang">{html.escape(lang)}</span>')
-    bar.append('<span class="spacer"></span>')
-    bar.append(f'<span class="tag {cls}">{label}</span>')
-    bar.append('<button class="copy" type="button">Copy</button>')
-    bar.append("</figcaption>")
 
     # Syntax highlighting happens here, at render time, so the spans are in the
     # HTML: no JS, no CDN, and print and the single-file build get it too.
@@ -188,21 +184,34 @@ def render_listing(lang: str, mode: str, tags: dict, body: str,
     else:
         rendered = "\n".join(lines)
 
-    lang_class = f' class="language-{html.escape(lang)}"' if lang else ""
+    show_lang = lang and lang.lower() != DOMINANT_LANG.lower()
     out = [f'<figure class="listing" id="listing-{number}">' if number
            else '<figure class="listing">']
-    out += bar
-    out.append(f"<pre><code{lang_class}>{rendered}</code></pre>")
+    if filename or show_lang:
+        bits = []
+        if filename:
+            bits.append(html.escape(str(filename)))
+        if show_lang:
+            bits.append(f'<span class="lang">{html.escape(lang)}</span>')
+        out.append(f'<div class="file">{" ".join(bits)}</div>')
+    lang_class = f' class="language-{html.escape(lang)}"' if lang else ""
+    aria = f' aria-label="Copy listing {number}"' if number else ' aria-label="Copy"'
+    out.append(f"<pre><code{lang_class}>{rendered}</code>"
+               f'<button class="copy" type="button"{aria}>Copy</button></pre>')
+    if expected is not None:
+        kind = " stderr" if mode == "expect-error" else ""
+        out.append(f'<pre class="output{kind}" aria-label="Output">{html.escape(expected)}</pre>')
     if number:
         cap = tags.get("caption")
         cap_txt = f" {inline(str(cap))}" if isinstance(cap, str) else ""
-        out.append(f'<figcaption class="caption">'
-                   f'<span class="num">Listing {number}.</span>{cap_txt}</figcaption>')
+        title = ("This listing was executed and its output checked" if cls == "verified"
+                 else "This listing fails on purpose; the error shown is the real one"
+                 if cls == "error-demo" else "Not executed")
+        out.append(f'<figcaption><span class="num">Listing {number}.</span>{cap_txt}'
+                   f'<span class="tag {cls}" title="{title}">{label}</span></figcaption>')
+    elif cls == "unverified":
+        out.append(f'<figcaption><span class="tag unverified">{label}</span></figcaption>')
     out.append("</figure>")
-
-    if expected is not None:
-        out.append('<div class="output-block"><div class="label">Output</div>'
-                   f"<pre>{html.escape(expected)}</pre></div>")
     return "\n".join(out)
 
 
@@ -345,6 +354,8 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
                 depth_open += depth_of(lines[j])
                 j += 1
             raw = "\n".join(block)
+            raw = re.sub(r"(<figcaption>\s*)((?:Figure|Diagram|Table)\s+[\d.\-]+\.?)",
+                         r'\1<span class="num">\2</span>', raw)
             out.append(raw)
             cur_section["text"].append(re.sub(r"<[^>]+>", " ", raw)[:400])
             i = j
@@ -368,7 +379,7 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
                 # The page carries a "Chapter N" label above the title, so the
                 # title itself should not repeat it.
                 shown = re.sub(r"^Chapter\s+\d+[:.]?\s*", "", text).strip() or text
-            out.append(f'<h{level} id="{slug}">{inline(shown)}{anchor}</h{level}>')
+            out.append(f'<h{level} id="{slug}">{anchor}{inline(shown)}</h{level}>')
             i += 1
             continue
 
@@ -538,7 +549,7 @@ def collect_terms(md: str) -> list[tuple[str, str]]:
 # ── page assembly ─────────────────────────────────────────────────────────────
 
 def head(title: str, book_title: str, css: str, inline_assets: bool,
-         extra: str = "") -> str:
+         extra: str = "", body_class: str = "") -> str:
     style = f"<style>\n{css}\n</style>" if inline_assets else \
         '<link rel="stylesheet" href="assets/book.css">'
     return f"""<!doctype html>
@@ -554,7 +565,7 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 {style}
 {extra}
 </head>
-<body>
+<body{(' class="' + body_class + '"') if body_class else ''}>
 <a class="skip" href="#main">Skip to content</a>"""
 
 
@@ -566,15 +577,15 @@ def masthead(book_title: str, crumb: str, toc: str = "", home: str = "index.html
     return f"""<header class="masthead">
   <span class="crumb"><a class="book" href="{home}">{html.escape(book_title)}</a><span class="sep"> &nbsp;·&nbsp; </span>{html.escape(crumb)}</span>
   <span class="spacer"></span>
+  <span class="section" id="running-section"></span>
   {drawer}
-  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button" aria-label="Theme">Auto</button>
-</header>
-<div id="progress"></div>"""
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
+</header>"""
 
 
 SEARCH_DIALOG = """<dialog id="search" aria-label="Search the book">
-  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
   <ul id="search-results"></ul>
 </dialog>"""
 
@@ -617,7 +628,10 @@ def chapter_page(ch: Chapter, chapters: list[Chapter], book: dict,
     if next_ch:
         rel.append(f'<link rel="next" href="{next_ch.stem}.html">')
 
-    nav = ['<nav class="chapter-nav">']
+    nav = ['<nav class="chapter-nav" aria-label="Chapter navigation">']
+    if not prev_ch and not next_ch:
+        nav.append('<a class="prev" href="index.html"><span class="dir">Contents</span>'
+                   f'<span class="t">{html.escape(book["title"])}</span></a>')
     if prev_ch:
         nav.append(f'<a class="prev" href="{prev_ch.stem}.html">'
                    f'<span class="dir">Previous</span>'
@@ -690,7 +704,7 @@ def index_page(chapters: list[Chapter], book: dict, css: str) -> str:
     first = chapters[0]
 
     return "\n".join([
-        head("Cover", book["title"], css, False),
+        head("Cover", book["title"], css, False, body_class="cover-page"),
         masthead(book["title"], "Cover",
                  toc_html(chapters, None, glossary=bool(book.get("glossary")))),
         cover_html(book, first),          # full-bleed, outside the text column
@@ -702,9 +716,8 @@ def index_page(chapters: list[Chapter], book: dict, css: str) -> str:
         (f'<p class="extras-link"><a href="glossary.html">Glossary</a> — every term the '
          f'book introduces, with the chapter that defines it.</p>' if book.get("glossary") else ""),
         front,
-        f'<p style="margin-top:2.5rem"><a href="book.html">Read as a single page</a> '
-        f"— everything in one file, for offline reading, search across the whole book, "
-        f"or printing.</p>",
+        '<p class="single-link"><a href="book.html">Read as a single page</a> '
+        "— one file, for offline reading, search across the whole book, or printing.</p>",
         "</main>",
         "</div>",
         SEARCH_DIALOG,
@@ -824,6 +837,10 @@ def main() -> int:
     shutil.copy(assets_src / "book.js", out / "assets" / "book.js")
 
     meta = load_book_meta(book_dir)
+    global DOMINANT_LANG
+    ym = re.search(r"^language:\s*(\S+)", (book_dir / "book.yaml").read_text()
+                   if (book_dir / "book.yaml").exists() else "", re.M)
+    DOMINANT_LANG = ym.group(1).strip("\"'") if ym else ""
     chapters: list[Chapter] = []
     seen_slugs: dict = {}
 
@@ -840,10 +857,11 @@ def main() -> int:
         body, headings, sections = render_markdown(text, path.stem, number, seen_slugs)
         # first paragraph as the contents blurb
         blurb = ""
-        for s in sections:
-            plain = re.sub(r"<[^>]+>", "", s["text"]).strip()
-            if plain:
-                blurb = plain[:150].rstrip() + ("…" if len(plain) > 150 else "")
+        for pm in re.finditer(r"<p(?:\s[^>]*)?>(.*?)</p>", body, re.S):
+            plain = re.sub(r"<[^>]+>", "", pm.group(1)).strip()
+            plain = re.sub(r"\s+", " ", plain)
+            if len(plain) > 40:
+                blurb = plain[:160].rstrip() + ("…" if len(plain) > 160 else "")
                 break
         chapters.append(Chapter(path.stem, number, title, body, headings,
                                 sections, blurb))
