@@ -509,6 +509,30 @@ figure.listing:hover button.copy, button.copy:focus-visible { opacity: 1; }
 button.copy:hover { color: var(--accent); }
 button.copy[data-copied] { color: var(--ok); opacity: 1; }
 
+/* line numbers in the gutter, generated so they never copy with the code */
+pre code.numbered { counter-reset: line; display: block; }
+pre code.numbered .line {
+  display: block;
+  counter-increment: line;
+  white-space: pre-wrap;              /* a long line wraps under the code, not the gutter */
+  overflow-wrap: anywhere;
+  padding-left: 3.1em;
+  text-indent: -3.1em;
+}
+pre code.numbered .line::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2.2em;
+  margin-right: 0.9em;
+  text-align: right;
+  text-indent: 0;
+  color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  opacity: 0.7;
+}
+pre code.numbered .line.hl-line { width: auto; }
+
 /* highlighted lines */
 pre .hl-line {
   display: inline-block;
@@ -894,6 +918,9 @@ body.cover-page .masthead .crumb a { color: inherit; }
   .chapter-nav a { max-width: none; }
   .chapter-nav .next { margin-left: 0; text-align: left; }
   figure.listing { margin-left: -1.15rem; margin-right: -1.15rem; }
+  /* a diagram keeps a legible size and scrolls inside its figure, full-bleed */
+  .diagram { margin-left: -1.15rem; margin-right: -1.15rem; overflow-x: auto; }
+  .diagram > svg { min-width: 34rem; padding: 0 1.15rem; box-sizing: content-box; }
   pre { padding: 0.85rem 1.15rem; font-size: 0.875rem; }
   .hl-line { box-shadow: -1.15rem 0 0 var(--hl-line), 1.15rem 0 0 var(--hl-line); }
   .table-wrap { margin-left: -1.15rem; margin-right: -1.15rem; padding: 0 1.15rem; }

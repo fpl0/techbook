@@ -178,11 +178,16 @@ def render_listing(lang: str, mode: str, tags: dict, body: str,
                     wanted.add(int(part))
                 except ValueError:
                     pass
-        rendered = "\n".join(
-            (f'<span class="hl-line">{ln}</span>' if i + 1 in wanted else ln)
-            for i, ln in enumerate(lines))
     else:
-        rendered = "\n".join(lines)
+        wanted = set()
+    # Each line is wrapped so CSS can number it in the gutter; the numbers are
+    # generated content, so copying the listing copies only the code.
+    numbered = mode in ("run", "check", "expect-error", "norun") and len(lines) > 1
+    rendered = "\n".join(
+        (f'<span class="line{" hl-line" if i + 1 in wanted else ""}">{ln}</span>'
+         if numbered else
+         (f'<span class="hl-line">{ln}</span>' if i + 1 in wanted else ln))
+        for i, ln in enumerate(lines))
 
     show_lang = lang and lang.lower() != DOMINANT_LANG.lower()
     out = [f'<figure class="listing" id="listing-{number}">' if number
@@ -194,7 +199,8 @@ def render_listing(lang: str, mode: str, tags: dict, body: str,
         if show_lang:
             bits.append(f'<span class="lang">{html.escape(lang)}</span>')
         out.append(f'<div class="file">{" ".join(bits)}</div>')
-    lang_class = f' class="language-{html.escape(lang)}"' if lang else ""
+    lang_class = f' class="language-{html.escape(lang)}{" numbered" if numbered else ""}"' if lang \
+        else (' class="numbered"' if numbered else "")
     aria = f' aria-label="Copy listing {number}"' if number else ' aria-label="Copy"'
     out.append(f"<pre><code{lang_class}>{rendered}</code>"
                f'<button class="copy" type="button"{aria}>Copy</button></pre>')
@@ -339,6 +345,11 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
                         d += 1
                 return d
             block = [line]
+            # Depth is computed over the whole block so far, not line by line:
+            # an opening tag whose attributes span two lines (common in SVG)
+            # would otherwise never be counted, its closing tag would push the
+            # depth to zero early, and the rest of the diagram would leak out
+            # as paragraphs.
             depth_open = depth_of(line)
             j = i + 1
             # consume until a blank line at depth 0 -- but never swallow a fenced
@@ -351,11 +362,14 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
                 if fm and fm.group("info").strip():
                     break
                 block.append(lines[j])
-                depth_open += depth_of(lines[j])
+                depth_open = depth_of("\n".join(block))
                 j += 1
             raw = "\n".join(block)
             raw = re.sub(r"(<figcaption>\s*)((?:Figure|Diagram|Table)\s+[\d.\-]+\.?)",
                          r'\1<span class="num">\2</span>', raw)
+            # A diagram gets its own scroll container, so on a phone the SVG
+            # keeps a legible width and scrolls while the caption stays put.
+            raw = re.sub(r"(<svg\b.*?</svg>)", r'<div class="diagram">\1</div>', raw, flags=re.S)
             out.append(raw)
             cur_section["text"].append(re.sub(r"<[^>]+>", " ", raw)[:400])
             i = j

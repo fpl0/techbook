@@ -628,7 +628,15 @@ def sandboxed(cmd: list[str], block: Block, cwd: Path, timeout: int,
     try:
         p = subprocess.run(full, capture_output=True, text=True,
                            timeout=timeout, cwd=cwd, env=env)
-        return p.stdout, p.stderr, p.returncode
+        # Tracebacks name the scratch file and the book directory. The reader
+        # should see `snippet.py` and `code/backtrack.py`, not the author's
+        # home directory, so the paths are trimmed at capture time.
+        def trim(text: str) -> str:
+            text = text.replace(str(cwd) + os.sep, "")
+            if book is not None:
+                text = text.replace(str(book) + os.sep, "")
+            return text
+        return trim(p.stdout), trim(p.stderr), p.returncode
     except subprocess.TimeoutExpired:
         return "", f"TIMEOUT after {timeout}s", 124
     except FileNotFoundError as e:

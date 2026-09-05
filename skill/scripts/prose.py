@@ -185,6 +185,11 @@ def prose_lines(path: Path) -> list[tuple[int, str]]:
         s = raw.strip()
         if not s or s.startswith("|") or SVG_LINE.match(s):
             continue
+        # The terms line is a glossary with a mandated "term — definition" shape,
+        # not prose, and a <summary> is a label, not a sentence.
+        if re.match(r"^\*\*terms introduced", s, re.I):
+            continue
+        s = re.sub(r"<summary>.*?</summary>", " ", s, flags=re.I | re.S)
         s = re.sub(r"^#{1,6}\s+", "", s)              # heading text still counts
         s = re.sub(r"^[-*+]\s+|^\d+[.)]\s+", "", s)   # so does a list item
         s = re.sub(r"^>\s?", "", s)                   # and a blockquote
