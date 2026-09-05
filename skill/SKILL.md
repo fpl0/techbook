@@ -223,10 +223,10 @@ starting over. Say which phase you are resuming into.
    Prose      em dash/1k 0.4 · sentence stdev 9.1 · ban-list 0 · craft 2
    Rubric     lowest dimension 4 (voice, ch06)
    Continuity clean
-   Build      ./my-book/build/index.html  (cover, contents, front matter)
-              ./my-book/build/chNN-*.html (one page per chapter)
-              ./my-book/build/glossary.html
-              ./my-book/build/book.html  (single file, offline, printable)
+   Open       ./my-book/build/index.html  (cover, contents, front matter)
+              → chNN-*.html, one page per chapter, with previous/next
+              → glossary.html
+   Also       ./my-book/build/book.html  (optional single file: offline, print, Ctrl-F)
    ```
 
    Then, explicitly: every `norun` and `literal` block with its stated reason; anything

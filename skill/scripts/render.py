@@ -602,7 +602,7 @@ def masthead(book_title: str, crumb: str, toc: str = "", home: str = "index.html
   <span class="section" id="running-section"></span>
   {drawer}
   <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
-  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
+  <button id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg><svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
 </header>"""
 
 
@@ -782,13 +782,18 @@ def single_page(chapters: list[Chapter], book: dict, css: str, js: str,
                 index: list) -> str:
     parts = [
         head(book["title"], book["title"], css, True),
-        masthead(book["title"], "Complete",
+        masthead(book["title"], "Single page",
                  toc_html(chapters, None, single=True, glossary=bool(book.get("glossary"))),
-                 home="#top"),
+                 home="index.html"),
         cover_html(book, chapters[0]),
         '<div class="shell book-single" id="top">',
         '<main id="main">',
         cover_cta(chapters[0], single=True),
+        # The chapter pages are the default way to read; this file is the
+        # offline/print/Ctrl-F edition, and it must say so and point back.
+        '<p class="single-link">This is the single-page edition. '
+        '<a href="index.html">Read one chapter per page</a> — the default, '
+        "so you can read in sittings.</p>",
     ]
     if book.get("front_matter_html"):
         parts.append(f'<section class="front-matter">{book["front_matter_html"]}</section>')

@@ -4,34 +4,31 @@
 (function () {
   "use strict";
 
-  /* ── theme: auto → light → dark, remembered per reader ─────────────────── */
+  /* ── theme: light ↔ dark, starting from the system preference ─────────── */
   var THEME_KEY = "techbook-theme";
   function readTheme() {
     try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; }
   }
-  function applyTheme(t) {
-    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-    else document.documentElement.removeAttribute("data-theme");
+  function effectiveTheme() {
+    var stored = readTheme();
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
-  function cycleTheme() {
-    var order = ["auto", "light", "dark"];
-    var cur = readTheme() || "auto";
-    var next = order[(order.indexOf(cur) + 1) % order.length];
-    try {
-      if (next === "auto") localStorage.removeItem(THEME_KEY);
-      else localStorage.setItem(THEME_KEY, next);
-    } catch (e) { /* private mode: theme just won't persist */ }
-    applyTheme(next === "auto" ? null : next);
-    labelTheme(next);
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    labelTheme(t);
+  }
+  function toggleTheme() {
+    var next = effectiveTheme() === "dark" ? "light" : "dark";
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* private mode: theme just won't persist */ }
+    applyTheme(next);
   }
   function labelTheme(t) {
     var btn = document.getElementById("theme-toggle");
-    if (btn) {
-      var state = t === "light" ? "light" : t === "dark" ? "dark" : "automatic";
-      btn.textContent = "Theme";
-      btn.setAttribute("aria-label", "Colour scheme: " + state + ". Click to change.");
-      btn.setAttribute("title", "Colour scheme: " + state + ". Click to change.");
-    }
+    if (!btn) return;
+    var label = t === "dark" ? "Switch to light mode" : "Switch to dark mode";
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
   }
 
   /* ── print: open every <details>, then put them back ──────────────────── */
@@ -241,9 +238,9 @@
 
   /* ── init ──────────────────────────────────────────────────────────────── */
   function init() {
-    labelTheme(readTheme() || "auto");
+    labelTheme(effectiveTheme());
     var tt = document.getElementById("theme-toggle");
-    if (tt) tt.addEventListener("click", cycleTheme);
+    if (tt) tt.addEventListener("click", toggleTheme);
     wireCopy();
     wireScroll();
     wireSearch();

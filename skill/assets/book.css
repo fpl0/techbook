@@ -245,6 +245,15 @@ small { font-size: 0.9em; }
   text-decoration: none;
 }
 .masthead button:hover, .masthead summary:hover { color: var(--accent); }
+#theme-toggle { display: inline-flex; align-items: center; padding: 0.35rem 0.3rem; }
+#theme-toggle svg { display: block; width: 1.25rem; height: 1.25rem; }
+#theme-toggle .icon-sun { display: none; }             /* light: offer the moon */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #theme-toggle .icon-sun { display: block; }
+  :root:not([data-theme="light"]) #theme-toggle .icon-moon { display: none; }
+}
+:root[data-theme="dark"] #theme-toggle .icon-sun { display: block; }
+:root[data-theme="dark"] #theme-toggle .icon-moon { display: none; }
 .masthead kbd {
   display: none;                          /* a keyboard hint needs a keyboard */
   font-family: var(--font-code);
