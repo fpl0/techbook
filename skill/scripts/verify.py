@@ -368,6 +368,47 @@ def dep_gate(blocks: list[Block], book: Path) -> list[str]:
     return errors
 
 
+# ── code/ must agree with the book ───────────────────────────────────────────
+# Crafting Interpreters' guarantee: the prose cannot drift from code that really
+# compiles, because the snippets come from the same source the test suite runs.
+# We keep the block as the author's working surface and enforce the pairing, so
+# `file=` stops being decoration on the listing header.
+
+def code_file_gate(blocks: list[Block], book: Path, sync: bool) -> list[str]:
+    errors: list[str] = []
+    for b in blocks:
+        decl = b.tags.get("file") or b.tags.get("filename")
+        if not isinstance(decl, str) or not decl:
+            continue
+        path = (book / decl.split("#")[0]).resolve()
+        try:
+            path.relative_to(book)
+        except ValueError:
+            errors.append(f"{b.ident}: file={decl} escapes the book directory")
+            continue
+
+        if sync:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(b.body.rstrip() + "\n", encoding="utf-8")
+            continue
+
+        if not path.exists():
+            errors.append(
+                f"{b.ident}: declares file={decl}, but that file does not exist. "
+                f"Either write it (verify.py --sync-code does this) or drop the tag "
+                f"-- a filename header the reader cannot open is a promise the book "
+                f"does not keep.")
+            continue
+
+        on_disk = path.read_text(encoding="utf-8").strip()
+        if on_disk != b.body.strip():
+            errors.append(
+                f"{b.ident}: the listing and {decl} have diverged. The book must not "
+                f"show code that differs from the file it names; reconcile them, or "
+                f"re-run with --sync-code if the block is correct.")
+    return errors
+
+
 # ── Output normalisation ──────────────────────────────────────────────────────
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
@@ -771,6 +812,8 @@ def main() -> int:
                     help="accept .md.corrected files, then exit")
     ap.add_argument("--no-cache", action="store_true")
     ap.add_argument("--only", help="restrict to chapters whose stem contains this")
+    ap.add_argument("--sync-code", action="store_true",
+                    help="write each file=-tagged listing out to the path it declares")
     ap.add_argument("--setup", action="store_true",
                     help="materialise language environments and exit")
     args = ap.parse_args()
@@ -803,6 +846,7 @@ def main() -> int:
         lint.extend(errs)
 
     lint.extend(dep_gate(all_blocks, book))
+    lint.extend(code_file_gate(all_blocks, book, args.sync_code))
 
     if lint:
         print("Lint errors — nothing was executed")

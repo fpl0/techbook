@@ -41,6 +41,11 @@ ITALIC = re.compile(r"(?<![\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])", re.S)
 STRIKE = re.compile(r"~~(?=\S)(.+?)(?<=\S)~~", re.S)
 AUTOLINK = re.compile(r"<((?:https?)://[^>\s]+)>")
 RAW_TAG = re.compile(r"</?[A-Za-z][\w-]*(?:\s[^<>]*)?/?>")
+TAG_RE = re.compile(r"<(/?)([A-Za-z][\w-]*)[^<>]*?(/?)>")
+VOID_ELEMENTS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr",
+}
 
 
 def inline(text: str) -> str:
@@ -57,8 +62,10 @@ def inline(text: str) -> str:
     # then raw HTML tags, so escaping below can't mangle them
     text = RAW_TAG.sub(lambda m: stash(m.group(0)), text)
 
-    text = html.escape(text, quote=False)
-
+    # Links and images are extracted BEFORE the global escape. Escaping first
+    # would turn `?a=1&b=2` into `?a=1&amp;b=2`, and escaping the captured URL
+    # again yields `&amp;amp;` -- a broken href. Autolinks likewise have to be
+    # seen while their angle brackets are still angle brackets.
     text = IMAGE.sub(
         lambda m: stash(
             f'<img src="{html.escape(m.group(2), quote=True)}" '
@@ -74,8 +81,12 @@ def inline(text: str) -> str:
             + f">{inline(m.group(1))}</a>"),
         text)
     text = AUTOLINK.sub(
-        lambda m: stash(f'<a href="{m.group(1)}" target="_blank" rel="noopener">'
-                        f"{m.group(1)}</a>"), text)
+        lambda m: stash(
+            f'<a href="{html.escape(m.group(1), quote=True)}" '
+            f'target="_blank" rel="noopener">{html.escape(m.group(1))}</a>'), text)
+
+    text = html.escape(text, quote=False)
+
     text = BOLD.sub(lambda m: f"<strong>{m.group(1)}</strong>", text)
     text = ITALIC.sub(lambda m: f"<em>{m.group(1)}</em>", text)
     text = STRIKE.sub(lambda m: f"<del>{m.group(1)}</del>", text)
@@ -303,7 +314,18 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
                     r"blockquote|dl|pre|header|footer|form|math|h[1-6])\b", line, re.I) \
                 or re.match(r"^\s*</", line):
             def depth_of(s: str) -> int:
-                return s.count("<") - 2 * s.count("</") - s.count("/>")
+                # Count real tags. Counting bare angle brackets treats a void
+                # element written without a slash (<img>, <br>, <hr>, <input>)
+                # as an unclosed tag, which inflates the depth forever and makes
+                # the passthrough swallow the rest of the chapter.
+                d = 0
+                for t in TAG_RE.finditer(s):
+                    closing, name, selfclose = t.group(1), t.group(2).lower(), t.group(3)
+                    if closing:
+                        d -= 1
+                    elif not selfclose and name not in VOID_ELEMENTS:
+                        d += 1
+                return d
             block = [line]
             depth_open = depth_of(line)
             j = i + 1
@@ -633,7 +655,10 @@ def single_page(chapters: list[Chapter], book: dict, css: str, js: str,
         parts.append("</section>")
     parts += [
         "</main>", "</div>", SEARCH_DIALOG,
-        f"<script>window.__TECHBOOK_INDEX__={json.dumps(index)};</script>",
+        # A listing containing </script> would otherwise close this tag early and
+        # dump raw JSON into the page. Escaping < covers </script>, <!-- and <![CDATA[.
+        f"<script>window.__TECHBOOK_INDEX__="
+        f"{json.dumps(index).replace('<', chr(92) + 'u003c')};</script>",
         f"<script>\n{js}\n</script>",
         "</body></html>",
     ]

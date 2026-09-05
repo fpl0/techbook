@@ -22,7 +22,7 @@ Still no automata theory.</p>
 ## Warm-up
 
 <details>
-<summary>In chapter 1, what determined the <em>degree</em> of the polynomial — the length of the input, or something about the pattern?</summary>
+<summary>In chapter 1, what determined the <em>degree</em> of the polynomial: the length of the input, or something about the pattern?</summary>
 <p>Something about the pattern: the number of stars competing for the same characters.
 The input length is the base, the pattern supplies the exponent.</p>
 </details>
@@ -257,7 +257,7 @@ does not grow with the input at all.</p>
 
 </details>
 
-Compiling backwards — passing in the continuation and returning the entry — is what
+Compiling backwards, passing in the continuation and returning the entry, is what
 avoids the dangling-arrow bookkeeping that Thompson's original formulation needs. The
 star case still needs one patch, because its body must loop back to a state that does
 not exist until the body has been compiled.
@@ -330,7 +330,7 @@ if isinstance(node, Plus):
 
 <details><summary>Solution</summary>
 <p><code>Cat(node.inner, Star(node.inner))</code>. Desugaring in the compiler rather
-than adding a state kind keeps the simulator in chapter 3 unchanged — the fewer state
+than adding a state kind keeps the simulator in chapter 3 unchanged: the fewer state
 kinds it has to know about, the simpler it stays.</p>
 </details>
 </div>

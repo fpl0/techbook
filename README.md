@@ -89,6 +89,9 @@ The skill drives these, but they work standalone on any book directory.
 | `verify.py <book> --promote` | accept output corrections |
 | `verify.py <book> --strict` | publish gate: unverified blocks fail too |
 | `verify.py <book> --only chNN` | restrict to matching chapters |
+| `verify.py <book> --sync-code` | write each `file=` listing out to the path it names |
+| `prose.py <book>` | ban-list, craft checks, em-dash density, sentence rhythm |
+| `continuity.py <book>` | terms used before introduction, cross-chapter numbers, dangling refs |
 | `render.py <book>` | Markdown → HTML |
 | `urlcheck.py <book>` | citation liveness, Wayback-backed |
 
@@ -144,6 +147,7 @@ open demo/regex-from-scratch/build/index.html
 
 ## Limitations
 
+- **Code verification covers about a fifth of a book by word count.** The rest rests on `prose.py`, `continuity.py`, the rubric in `references/rubric.md`, and citation discipline — all weaker than a process exit code. "Every example ran" is the claim; "the book is correct" is not.
 - **Hand-written benchmarks pass the gate.** Durations normalise to `<DUR>` so diffs stay stable across runs, which means an invented timing is indistinguishable from a measured one. The gate cannot catch this; `references/block-tags.md` tells authors to paste measured output, and that's the only protection.
 - **No semantic cross-chapter repetition detection**, and no automatic through-line measurement. Neither has a good solution in the literature. The structural editing pass is partial; the final read is human.
 - **macOS only** for sandboxing. `sandbox-exec` has no Linux equivalent wired up here; without it, blocks still execute but unsandboxed.

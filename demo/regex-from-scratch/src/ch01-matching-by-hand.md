@@ -1,7 +1,7 @@
 # Chapter 1: Matching by Hand
 
 <span class="newthought">Here is a regular expression</span> that will hang your
-program. Not for a long time — forever, on a modern machine, for an input of about
+program. Not for a long time. Forever, on a modern machine, for an input of about
 thirty characters.
 
 ```python run env=ch1 file=code/pathological.py caption="Innocent-looking, and catastrophic." highlight=4
@@ -27,7 +27,7 @@ before it gives up. Each additional `a` doubles the work.
 <li>Read a regex as a structure rather than as a string of punctuation</li>
 </ul>
 <h3>Assumes you know</h3>
-<p>Python functions, recursion, and slicing. No automata theory — that arrives in
+<p>Python functions, recursion, and slicing. No automata theory. That arrives in
 chapter 2, once you have felt why it is needed.</p>
 <p class="meta">~25 min · 4 exercises</p>
 </div>
@@ -82,7 +82,7 @@ True True False
 
 <p><code>True</code>. The empty pattern matched the empty prefix of <code>"abc"</code>
 and stopped. That is correct for a <em>prefix</em> matcher, which is what we are
-building — it answers "does this pattern start here?", not "does it consume
+building. It answers "does this pattern start here?", not "does it consume
 everything?". Anchoring to the end is exercise 3.</p>
 
 </details>
@@ -139,7 +139,7 @@ greedy by default, which changes which match you get but not whether one exists.
 
 <div class="callout">
 <div class="title">This trips people up</div>
-<p><code>match_star</code> checks <code>match_here(pattern, ...)</code> — the pattern
+<p><code>match_star</code> checks <code>match_here(pattern, ...)</code>, the pattern
 <em>after</em> the star, not including it. Passing the full pattern is the classic
 error, and it produces infinite recursion rather than a wrong answer, which at least
 fails loudly.</p>
@@ -208,7 +208,7 @@ The count grows as a polynomial whose degree is the number of competing stars.</
 
 Our four-construct language cannot do worse than polynomial, because it has no way to
 nest one repetition inside another. Real regex syntax can, and that is where the
-genuinely exponential case lives — the `(a+)+b` from the opening of this chapter. The
+genuinely exponential case lives: the `(a+)+b` from the opening of this chapter. The
 outer `+` repeats a group that itself repeats, so the number of paths doubles with
 each added character rather than growing polynomially.<label for="sn-1-1" class="margin-toggle sidenote-number"></label>
 <input type="checkbox" id="sn-1-1" class="margin-toggle">
@@ -238,7 +238,7 @@ if len(pattern) >= 2 and pattern[1] == "?":
 ```
 
 <details><summary>Solution</summary>
-<p><code>match_here(pattern[2:], text)</code> — the zero-occurrence branch. Order
+<p><code>match_here(pattern[2:], text)</code>. The zero-occurrence branch is the one you want. Order
 matters: trying the one-occurrence branch first makes <code>?</code> greedy, which is
 what every real engine does.</p>
 </details>
@@ -257,7 +257,7 @@ def match(pattern, text):
 
 <details><summary>Solution</summary>
 <p><code>match_here(pattern[1:], text)</code>. An anchored pattern tries position zero
-only, which is why anchoring a slow pattern often makes it fast — it removes the outer
+only, which is why anchoring a slow pattern often makes it fast. It removes the outer
 loop over starting positions, though not the inner exponential blowup.</p>
 </details>
 </div>

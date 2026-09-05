@@ -135,7 +135,7 @@ a*       ''         True
 
 <ol class="annot">
 <li><code>seen</code> is a separate set from <code>current</code>, and it is the one that terminates the recursion. It has to be separate, because splits are traversed but never stored.</li>
-<li>Splits are expanded on entry, so the set that <code>simulate</code> iterates over contains only <code>consume</code> and <code>match</code> states — no state kind needs handling twice.</li>
+<li>Splits are expanded on entry, so the set that <code>simulate</code> iterates over contains only <code>consume</code> and <code>match</code> states, so no state kind needs handling twice.</li>
 <li>A fresh <code>seen</code> per input character, because a state reachable at position 4 may need reaching again at position 5.</li>
 <li>An empty set means every path has died. Returning early is an optimisation, not a correctness requirement.</li>
 </ol>
@@ -146,7 +146,7 @@ a*       ''         True
 separate <code>seen</code> set. It passes every test in this chapter, and then
 overflows the stack on <code>(a*)*</code>. The reason is that splits are never added
 to <code>current</code>, so a cycle that runs <em>through</em> splits is never
-detected — and a starred group compiles to exactly that cycle. The set that stops the
+detected, and a starred group compiles to exactly that cycle. The set that stops the
 recursion must record every state visited, not only the states you keep.</p>
 <p>This was a real bug in this chapter's first draft. It was caught because the
 build runs <code>(a*)*b</code> against two thousand characters on every pass, and a
@@ -158,7 +158,7 @@ book that only ever tested <code>a*b</code> would have shipped it.</p>
 
 <p>Three at most, because the machine has four states and one of them is a split that
 is never stored. In general the set is bounded by the number of states, which chapter 2
-showed is bounded by the pattern length. The input cannot make it bigger — that is the
+showed is bounded by the pattern length. The input cannot make it bigger. That is the
 entire guarantee.</p>
 
 </details>
@@ -188,7 +188,7 @@ n= 4000      3.76 ms
 ```
 
 The time is proportional to the input length. Ten times the input costs about ten
-times the work, all the way up — where chapter 1 could not reach a hundred characters.
+times the work, all the way up, where chapter 1 could not reach a hundred characters.
 
 The reason is that the work is bounded by two quantities that are both small: for each
 of the *n* input characters, the simulator does work proportional to the number of
@@ -199,7 +199,7 @@ O(*nm*), and neither factor can surprise you.<label for="sn-3-1" class="margin-t
 about compiling regular expressions to IBM 7094 machine code. The algorithm predates
 the backtracking engines that replaced it by about a decade.</span>
 
-Nested quantifiers change nothing, because the machine has no nesting left in it — the
+Nested quantifiers change nothing, because the machine has no nesting left in it: the
 compiler flattened the tree into a list of states.
 
 ```python run env=engine caption="The nested-quantifier case from chapter 1, which no backtracker survives."
@@ -296,7 +296,7 @@ that cache on an adversarial pattern, and what you would bound.</p>
 - Membership must be checked before recursing, or a star loops forever
 - The cost is O(*nm*): input length times machine size, with neither factor able to surprise you
 - The guarantee is bought with capture groups, backreferences, and lookaround
-- Backreferences are not slow here — they are not expressible, because the language they describe is not regular
+- Backreferences are not slow here. They are not expressible, because the language they describe is not regular
 
 **Terms introduced:** closure, simulation, deduplication, DFA, submatch tracking.
 

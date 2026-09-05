@@ -99,6 +99,65 @@ book at most), "think of it as" (once per chapter at most).
 **Openings that are always wrong:** "In this chapter, we will…", "Before we begin,
 let's…", "Let's start by…", "Welcome to…".
 
+## What good looks like
+
+Rules describe the floor. These pairs show the target. Every "before" is the kind
+of sentence that passes a ban-list check and is still bad writing.
+
+**Explain the why, never the what.** The reader can see the code.
+
+> **Before:** This function loops over the values and adds them to a total, then
+> divides by the length of the list to get the average.
+>
+> **After:** The count is read separately from the sum, so an empty input fails at
+> the division rather than at the addition. That is why the traceback points one
+> line further down than you would expect.
+
+**Lead with the concrete case, name the principle after.**
+
+> **Before:** Thompson's construction guarantees a linear bound on state count,
+> which is what enables efficient simulation over the input.
+>
+> **After:** `a*a*a*b` is seven characters and compiles to eight states. Add
+> another star and you get ten. The machine never grows with the input, only with
+> the pattern.
+
+**Give the number.**
+
+> **Before:** This is significantly faster on large inputs.
+>
+> **After:** At 4,000 characters it finishes in 8.6 ms. Chapter 1's matcher could
+> not reach 100.
+
+**Own the judgement instead of hedging it.**
+
+> **Before:** It might be considered somewhat preferable to use a set here in most
+> cases.
+>
+> **After:** Use a set. A list works and turns the inner loop quadratic, which you
+> will not notice until the input is real.
+
+**Say what it does, not how important it is.**
+
+> **Before:** The `Split` state is a crucial component that plays a key role in
+> enabling the powerful simulation capability.
+>
+> **After:** `Split` says "both, at once". A pattern string has no way to express
+> that, which is the whole reason the machine can do something the string cannot.
+
+**Admit the limit.** A book that only lists wins is not trusted on the wins.
+
+> **Before:** This approach provides excellent performance characteristics for
+> regular expression matching.
+>
+> **After:** You give up capture groups, backreferences and lookaround. For a
+> server parsing untrusted input that is usually the right trade; for a text editor
+> it usually is not.
+
+**Vary the sentence length deliberately.** A paragraph of 15-word sentences reads
+as machine output even when every sentence is true. Follow a long, qualified
+sentence with a short flat one. The short one is where the reader breathes.
+
 ## How the slop pass works
 
 The slop pass runs `detect` semantics, not rewrite semantics. For each hit:

@@ -11,7 +11,7 @@ house style, with every code example executed and verified before it ships.
 ## Paths
 
 - **Skill root**: `~/.claude/skills/techbook`
-- **Scripts**: `~/.claude/skills/techbook/scripts/{verify,render,urlcheck}.py`
+- **Scripts**: `~/.claude/skills/techbook/scripts/{verify,prose,continuity,render,urlcheck}.py`
 - **References**: `~/.claude/skills/techbook/references/`
 - **Assets**: `~/.claude/skills/techbook/assets/{book.css,book.js}`
 - **Book project**: `./<book-slug>/` in the current directory, unless the user names somewhere else
@@ -78,12 +78,21 @@ starting over. Say which phase you are resuming into.
 
    Give each writer: `book.yaml`, its own outline contract, `references/house-style.md`,
    `references/chapter-template.md`, `references/block-tags.md`, `references/svg-kit.md`,
+   `references/rubric.md`,
    the research notes for its topic, and **a summary of every chapter already written**.
    It writes `src/chNN-slug.md`, saves any real code under `code/`, and writes its own
    summary plus the terms it introduced back to `state.json` for its successors.
 
-   Tell each writer its word budget explicitly. Models stop early without one, and a
-   chapter asked for in one shot arrives at a fraction of the length requested.
+   Tell each writer its **per-section** word budget, not just the chapter total.
+   Models stop early without one, and a chapter asked for in one shot arrives at a
+   fraction of the length requested.
+
+   **Before drafting a section, have the writer produce three candidate openings
+   and pick the least typical one that is still accurate.** Bland prose is not a
+   discipline failure, it is mode collapse: preference training rewards familiar
+   phrasing, so the highest-probability continuation is the one every other book
+   already used. Sampling a few framings and rejecting the obvious one is the
+   cheapest known counter, and it costs a few hundred tokens per section.
 
 5. **Verify code.** The hard gate.
 
@@ -111,7 +120,31 @@ starting over. Say which phase you are resuming into.
 
    - **Structural.** Does each chapter do the job its outline contract states? Is the through-line intact? Does anything contradict an earlier chapter? Does terminology hold across the book?
    - **Line.** Clarity, subject and actor visible in every sentence, exact verbs.
-   - **Slop.** The mechanical pass from `references/house-style.md`. Count em dashes per thousand words, check sentence-length variance, grep the banned vocabulary. Prompt-level bans are not sufficient; this pass exists because they demonstrably leak.
+   - **Slop and craft.** Run the checker, then act on what it prints:
+
+     ```bash
+     python3 ~/.claude/skills/techbook/scripts/prose.py ./<book-slug>
+     ```
+
+     It reports ban-list hits, craft problems (narrating visible code, stacked
+     hedging, empty openers, vague quantifiers), em-dash density, sentence-length
+     variance, and repeated sentence openers. Prompt-level bans demonstrably leak,
+     which is why this is a post-hoc measurement and not a hope.
+
+   - **Rubric.** Score every chapter against `references/rubric.md`. A chapter
+     ships at 4 or more on all seven dimensions. Score honestly: a rubric that
+     everything passes measures nothing.
+
+   - **Continuity.** Run the cross-chapter checker:
+
+     ```bash
+     python3 ~/.claude/skills/techbook/scripts/continuity.py ./<book-slug>
+     ```
+
+     Terms used before they are introduced, numbers attributed to a chapter that
+     does not contain them, and dangling chapter references are all real defects.
+     This is the class of error prompting cannot fix, because chapter 1's details
+     are diluted by the time chapter 8 is written.
    - **Citation.** Every claim that needs a source has one, and every source says what the book says it says.
 
    **Forbidden in every pass:** inventing evidence, rewriting a claim to sound more
@@ -125,8 +158,17 @@ starting over. Say which phase you are resuming into.
    python3 ~/.claude/skills/techbook/scripts/render.py ./<book-slug>
    ```
 
-   Then re-run `verify.py --strict` for the publish gate. Open `build/index.html` and
-   actually look at it before declaring done.
+   Then run all three gates for publish:
+
+   ```bash
+   python3 ~/.claude/skills/techbook/scripts/verify.py ./<book-slug> --strict
+   python3 ~/.claude/skills/techbook/scripts/prose.py ./<book-slug>
+   python3 ~/.claude/skills/techbook/scripts/continuity.py ./<book-slug>
+   ```
+
+   Open `build/index.html` and actually look at it before declaring done. Render
+   at least one chapter page and check it visually — structural checks pass on
+   pages that read badly.
 
 8. **Report.** Print a summary:
 
@@ -137,6 +179,9 @@ starting over. Say which phase you are resuming into.
    Listings   61  verified  58 · error demos 3
    Unverified  2  (listed below, with reasons)
    Citations  47  live 47 · stale 0 · unfound 0
+   Prose      em dash/1k 0.4 · sentence stdev 9.1 · ban-list 0 · craft 2
+   Rubric     lowest dimension 4 (voice, ch06)
+   Continuity clean
    Build      ./my-book/build/index.html
               ./my-book/build/book.html  (single file, offline, printable)
    ```
@@ -162,6 +207,7 @@ checks were bypassed.
 - **`book.yaml` and `outline.md` are frozen once approved.** They are the book's law. Every subagent reads them before working; nothing edits them without asking the user, because a moved outline invalidates every chapter already written against it.
 - **State lives on disk, not in context.** Chapter 1's details are diluted by the time chapter 8 is being written even when they are technically still in the window. Prior-chapter summaries in `state.json` are what actually carries continuity.
 - **Nothing publishes unverified.** The verification gate is the reason to use this skill at all. Any book can have plausible-looking code in it.
+- **Code correctness is not content correctness.** `verify.py` covers roughly a fifth of a book by word count. Everything else rests on the rubric, the continuity checker, and citation discipline. Never report "verified" in a way that implies the prose was checked the way the code was.
 - **The book is never edited in place by a script.** Corrections land in `.md.corrected` for review. The author decides what their book says.
 
 ## What not to do
