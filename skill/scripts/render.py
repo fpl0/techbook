@@ -95,8 +95,13 @@ def inline(text: str) -> str:
     # typographic niceties, applied only outside code/html
     text = text.replace("---", "—").replace("--", "–").replace("...", "…")
 
-    for i, s in enumerate(slots):
-        text = text.replace(f"\x00{i}\x00", s)
+    # A stashed span can itself contain placeholders (a link whose text holds a
+    # code span), so resolve until none remain rather than in one pass.
+    for _ in range(8):
+        if "\x00" not in text:
+            break
+        for i, s in enumerate(slots):
+            text = text.replace(f"\x00{i}\x00", s)
     return text
 
 
@@ -230,18 +235,21 @@ def split_row(line: str) -> list[str]:
         line = line[1:]
     if line.endswith("|") and not line.endswith("\\|"):
         line = line[:-1]
-    cells, cur, esc = [], "", False
-    for ch in line:
-        if esc:
-            cur += ch
-            esc = False
-        elif ch == "\\":
-            esc = True
-        elif ch == "|":
+    cells, cur, i = [], "", 0
+    while i < len(line):
+        ch = line[i]
+        # Only `\|` is an escape inside a cell; every other backslash is content
+        # (`\d`, `\1`, a Windows path) and must survive.
+        if ch == "\\" and i + 1 < len(line) and line[i + 1] == "|":
+            cur += "|"
+            i += 2
+            continue
+        if ch == "|":
             cells.append(cur.strip())
             cur = ""
         else:
             cur += ch
+        i += 1
     cells.append(cur.strip())
     return cells
 

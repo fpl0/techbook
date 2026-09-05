@@ -16,6 +16,7 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <header class="masthead">
   <span class="crumb"><a class="book" href="index.html">A Rich Fixture</a><span class="sep"> &nbsp;·&nbsp; </span>Shapes of a Chapter</span>
   <span class="spacer"></span>
+  <span class="section" id="running-section"></span>
   <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
 <li><a href="ch01-shapes.html" aria-current="page"><span class="chap-num">1</span>Shapes of a Chapter</a>
 <ol class="sub">
@@ -23,14 +24,14 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <li><a href="#a-mental-model">A mental model</a></li>
 <li><a href="#practice">Practice</a></li>
 <li><a href="#what-to-remember">What to remember</a></li>
+<li><a href="#inline-regressions">Inline regressions</a></li>
 </ol>
 </li>
 </ol>
 </nav></details>
-  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button" aria-label="Theme">Auto</button>
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
 </header>
-<div id="progress"></div>
 <div class="shell">
 <main id="main">
 <p class="chapter-label">Chapter 1</p>
@@ -50,41 +51,30 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <p class="meta">~20 min · 4 exercises</p>
 </div>
 
-<h2 id="the-problem">The problem<a class="anchor" href="#the-problem" aria-label="Link to this section">#</a></h2>
+<h2 id="the-problem"><a class="anchor" href="#the-problem" aria-label="Link to this section">#</a>The problem</h2>
 
 <p>Here is a function that looks right and is wrong.<label for="sn-1" class="margin-toggle sidenote-number"></label> <input type="checkbox" id="sn-1" class="margin-toggle"> <span class="sidenote">The bug is subtle enough that it survived code review twice in the original codebase this is drawn from.</span></p>
 
 <figure class="listing" id="listing-1-1">
-<figcaption class="bar">
-<span class="file">code/average.py</span>
-<span class="lang">python</span>
-<span class="spacer"></span>
-<span class="tag verified">verified</span>
-<button class="copy" type="button">Copy</button>
-</figcaption>
-<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
-    total = <span class="t">sum</span>(values)
-<span class="hl-line">    <span class="k">return</span> total / <span class="t">len</span>(values)</span>
-
-<span class="t">print</span>(average([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>]))</code></pre>
-<figcaption class="caption"><span class="num">Listing 1-1.</span> A first attempt at a running average.</figcaption>
+<div class="file">code/average.py <span class="lang">python</span></div>
+<pre><code class="language-python numbered"><span class="line"><span class="k">def</span> <span class="f">average</span>(values):</span>
+<span class="line">    total = <span class="t">sum</span>(values)</span>
+<span class="line hl-line">    <span class="k">return</span> total / <span class="t">len</span>(values)</span>
+<span class="line"></span>
+<span class="line"><span class="t">print</span>(average([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>]))</span></code><button class="copy" type="button" aria-label="Copy listing 1-1">Copy</button></pre>
+<pre class="output" aria-label="Output">2.5</pre>
+<figcaption><span class="num">Listing 1-1.</span> A first attempt at a running average.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
 </figure>
-<div class="output-block"><div class="label">Output</div><pre>2.5</pre></div>
 
 <p>That works. Now watch what happens on the empty list.</p>
 
 <figure class="listing" id="listing-1-2">
-<figcaption class="bar">
-<span class="lang">python</span>
-<span class="spacer"></span>
-<span class="tag error-demo">error demo</span>
-<button class="copy" type="button">Copy</button>
-</figcaption>
-<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
-    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)
-
-average([])</code></pre>
-<figcaption class="caption"><span class="num">Listing 1-2.</span></figcaption>
+<div class="file"><span class="lang">python</span></div>
+<pre><code class="language-python numbered"><span class="line"><span class="k">def</span> <span class="f">average</span>(values):</span>
+<span class="line">    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</span>
+<span class="line"></span>
+<span class="line">average([])</span></code><button class="copy" type="button" aria-label="Copy listing 1-2">Copy</button></pre>
+<figcaption><span class="num">Listing 1-2.</span><span class="tag error-demo" title="This listing fails on purpose; the error shown is the real one">raises, as intended</span></figcaption>
 </figure>
 
 <div class="callout">
@@ -103,10 +93,10 @@ with <code>is</code> rather than <code>==</code>.</p>
 
 </details>
 
-<h2 id="a-mental-model">A mental model<a class="anchor" href="#a-mental-model" aria-label="Link to this section">#</a></h2>
+<h2 id="a-mental-model"><a class="anchor" href="#a-mental-model" aria-label="Link to this section">#</a>A mental model</h2>
 
 <figure>
-<svg viewBox="0 0 640 150" role="img" aria-labelledby="dia1-t">
+<div class="diagram"><svg viewBox="0 0 640 150" role="img" aria-labelledby="dia1-t">
   <title id="dia1-t">Values flow into sum, then into division by the count</title>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
@@ -128,14 +118,14 @@ with <code>is</code> rather than <code>==</code>.</p>
     <path d="M 148 74 L 250 74"/>
     <path d="M 388 74 L 490 74"/>
   </g>
-</svg>
-<figcaption>Figure 1-1. The count is read separately from the sum, so an empty input
+</svg></div>
+<figcaption><span class="num">Figure 1-1.</span> The count is read separately from the sum, so an empty input
 only fails at the second step.</figcaption>
 </figure>
 
 <div class="table-wrap"><table><thead><tr><th>Input</th><th style="text-align:right"><code>sum</code></th><th style="text-align:right"><code>len</code></th><th>Result</th></tr></thead><tbody><tr><td><code>[1,2,3,4]</code></td><td style="text-align:right">10</td><td style="text-align:right">4</td><td><code>2.5</code></td></tr><tr><td><code>[2]</code></td><td style="text-align:right">2</td><td style="text-align:right">1</td><td><code>2.0</code></td></tr><tr><td><code>[]</code></td><td style="text-align:right">0</td><td style="text-align:right">0</td><td>raises</td></tr></tbody></table></div>
 
-<h2 id="practice">Practice<a class="anchor" href="#practice" aria-label="Link to this section">#</a></h2>
+<h2 id="practice"><a class="anchor" href="#practice" aria-label="Link to this section">#</a>Practice</h2>
 
 <div class="exercises">
 <div class="exercise">
@@ -144,16 +134,12 @@ only fails at the second step.</figcaption>
 
 
 <figure class="listing">
-<figcaption class="bar">
-<span class="lang">python</span>
-<span class="spacer"></span>
-<span class="tag unverified">illustrative</span>
-<button class="copy" type="button">Copy</button>
-</figcaption>
+<div class="file"><span class="lang">python</span></div>
 <pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
     <span class="k">if</span> ____:
         <span class="k">return</span> <span class="k">None</span>
-    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</code></pre>
+    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</code><button class="copy" type="button" aria-label="Copy">Copy</button></pre>
+<figcaption><span class="tag unverified">illustrative</span></figcaption>
 </figure>
 
 <details><summary>Solution</summary>
@@ -168,7 +154,7 @@ the question being asked, and it works for any sequence.</p>
 </div>
 </div>
 
-<h2 id="what-to-remember">What to remember<a class="anchor" href="#what-to-remember" aria-label="Link to this section">#</a></h2>
+<h2 id="what-to-remember"><a class="anchor" href="#what-to-remember" aria-label="Link to this section">#</a>What to remember</h2>
 
 <ul>
 <li><code>sum</code> of an empty sequence is <code>0</code>, not an error</li>
@@ -179,12 +165,19 @@ the question being asked, and it works for any sequence.</p>
 <li>and this</li>
 </ul></li>
 </ul>
-<nav class="chapter-nav">
+
+<h2 id="inline-regressions"><a class="anchor" href="#inline-regressions" aria-label="Link to this section">#</a>Inline regressions</h2>
+
+<p>A link whose text holds code, <a href="https://docs.python.org/3/library/re.html" target="_blank" rel="noopener">the <code>re</code> reference</a>, and a table with backslashes (regression: nested placeholders and <code>\d</code>).</p>
+
+<div class="table-wrap"><table><thead><tr><th>Construct</th><th>Example</th></tr></thead><tbody><tr><td>class</td><td><code>[a-z]</code>, <code>\d</code></td></tr><tr><td>backreference</td><td><code>\1</code></td></tr><tr><td>pipe</td><td><code>a|b</code></td></tr></tbody></table></div>
+<nav class="chapter-nav" aria-label="Chapter navigation">
+<a class="prev" href="index.html"><span class="dir">Contents</span><span class="t">A Rich Fixture</span></a>
 </nav>
 </main>
 </div>
 <dialog id="search" aria-label="Search the book">
-  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
   <ul id="search-results"></ul>
 </dialog>
 <script src="assets/search.js"></script>

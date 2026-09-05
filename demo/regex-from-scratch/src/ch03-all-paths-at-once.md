@@ -449,6 +449,6 @@ I think the set simulation should be taught before the DFA, and usually it is ta
 
 - Cox, ["Regular Expression Matching Can Be Simple And Fast"](https://swtch.com/~rsc/regexp/regexp1.html) (2007), second half. The C simulator this chapter's Python follows, the `listid` trick, and the section on caching the sets into a DFA, including the note that the cache can be thrown away when it grows too large.
 - Cox, ["Regular Expression Matching: the Virtual Machine Approach"](https://swtch.com/~rsc/regexp/regexp2.html) (2009). The Pike VM: threads, saved positions, and why one thread per state is still enough. Read it before adding captures to `tinyre`.
-- Gallant, ["Regex engine internals as a library"](https://burntsushi.net/regex-internals/) (2023). How Rust's `regex` crate stacks a Pike VM, a bounded backtracker, a one-pass DFA and a lazy DFA behind one interface, and why "only the PikeVM is required".
+- Gallant, ["Regex engine internals as a library"](https://burntsushi.net/regex-internals/) (2023). How Rust's `regex` crate stacks a Pike VM, a bounded backtracker, a one-pass DFA and a DFA built on demand behind one interface, and why "only the PikeVM is required".
 
 On every example in this chapter, `tinyre` agrees with `re`. Chapter 4 asks whether it agrees on every pattern of up to four characters, and the first version did not.

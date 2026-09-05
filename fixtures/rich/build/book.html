@@ -26,7 +26,7 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
   --font-ui: var(--font-prose);
   --font-code: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  --measure: 62ch;
+  --measure: 56ch;               /* ~70 characters per line in Iowan at 19px */
   --rail-right: 15rem;
   --head-h: 2.75rem;
 
@@ -37,7 +37,7 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
   --bg-output: #ebe8df;
   --fg: #1f1d1a;
   --fg-muted: #5e5952;
-  --fg-faint: #857f75;
+  --fg-faint: #6b655b;           /* 5.4:1 on paper: labels, captions, meta */
   --rule: #ddd8cd;
   --rule-strong: #c4bdae;
   --accent: #8f3a2b;             /* one ink red: links, labels, marks */
@@ -49,16 +49,16 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
   --cover-bg: #7a3324;           /* the jacket: the same oxblood in both themes */
   --cover-fg: #f7f3ea;
 
-  /* code tokens, ink-like and few */
+  /* code tokens, ink-like and few; every one at least 4.5:1 on the code ground */
   --code-fg: #2f2b26;
-  --tok-c: #948b7c;
+  --tok-c: #6f6a60;
   --tok-s: #5c6b2a;
   --tok-n: #3f6b4f;
   --tok-k: #7a3e2c;
   --tok-t: #2f5d6b;
   --tok-f: #3a3f7a;
   --tok-d: #7a4a6b;
-  --tok-p: #a59d8e;
+  --tok-p: #7f786a;
   --tok-o: #6b655a;
 
   /* diagram kit — SVG references these, so diagrams invert for free */
@@ -73,11 +73,11 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
   :root:not([data-theme="light"]) {
     --bg: #151413;
     --bg-raised: #1e1c1a;
-    --bg-code: #1c1a18;
-    --bg-output: #191816;
-    --fg: #e9e4da;
-    --fg-muted: #b3ada3;
-    --fg-faint: #8a847a;
+    --bg-code: #221f1c;
+    --bg-output: #1c1a18;
+    --fg: #d8d2c6;
+    --fg-muted: #aca396;
+    --fg-faint: #928b7f;
     --rule: #302d29;
     --rule-strong: #47433c;
     --accent: #e0a48c;
@@ -86,15 +86,15 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
     --warn-bg: #362d1c;
     --ok: #93c3a1;
     --hl-line: #3b3520;
-    --code-fg: #ddd6c8;
-    --tok-c: #7f776b;
+    --code-fg: #d3ccbf;
+    --tok-c: #958d80;
     --tok-s: #b9c47a;
     --tok-n: #8fbf9c;
     --tok-k: #e0a08a;
     --tok-t: #8fbdc9;
     --tok-f: #b3b6e6;
     --tok-d: #d1a1c2;
-    --tok-p: #7f776b;
+    --tok-p: #8f877a;
     --tok-o: #a59d8e;
   }
 }
@@ -102,11 +102,11 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 :root[data-theme="dark"] {
   --bg: #151413;
   --bg-raised: #1e1c1a;
-  --bg-code: #1c1a18;
-  --bg-output: #191816;
-  --fg: #e9e4da;
-  --fg-muted: #b3ada3;
-  --fg-faint: #8a847a;
+  --bg-code: #221f1c;
+  --bg-output: #1c1a18;
+  --fg: #d8d2c6;
+  --fg-muted: #aca396;
+  --fg-faint: #928b7f;
   --rule: #302d29;
   --rule-strong: #47433c;
   --accent: #e0a48c;
@@ -115,15 +115,15 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
   --warn-bg: #362d1c;
   --ok: #93c3a1;
   --hl-line: #3b3520;
-  --code-fg: #ddd6c8;
-  --tok-c: #7f776b;
+  --code-fg: #d3ccbf;
+  --tok-c: #958d80;
   --tok-s: #b9c47a;
   --tok-n: #8fbf9c;
   --tok-k: #e0a08a;
   --tok-t: #8fbdc9;
   --tok-f: #b3b6e6;
   --tok-d: #d1a1c2;
-  --tok-p: #7f776b;
+  --tok-p: #8f877a;
   --tok-o: #a59d8e;
 }
 
@@ -142,7 +142,7 @@ body {
   color: var(--fg);
   font-family: var(--font-prose);
   font-size: clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem);
-  line-height: 1.58;
+  line-height: 1.6;
   font-kerning: normal;
   font-variant-numeric: oldstyle-nums;
   text-rendering: optimizeLegibility;
@@ -157,6 +157,7 @@ body {
   margin: 2.4em 0 0.6em;
   scroll-margin-top: calc(var(--head-h) + 1.5rem);
   text-wrap: balance;
+  position: relative;
 }
 
 h1 { font-size: clamp(2.1rem, 1.6rem + 1.8vw, 2.75rem); margin-top: 0; line-height: 1.1; }
@@ -166,7 +167,8 @@ h3 em, h3 code { font-style: normal; }
 h4 { font-size: 1rem; font-weight: 700; margin-top: 1.8em; }
 
 p { margin: 0 0 1.1em; text-wrap: pretty; }
-li { text-wrap: pretty; }
+li { text-wrap: pretty; padding-left: 0.1em; }
+ul, ol { padding-left: 1.3em; }          /* hang the marker, keep text near flush */
 
 a {
   color: var(--accent);
@@ -206,10 +208,10 @@ blockquote {
 blockquote em { font-style: normal; }
 
 strong { font-weight: 650; }
-small { font-size: 0.875em; }
+small { font-size: 0.9em; }
 
-/* opening small caps */
-.newthought { font-variant-caps: small-caps; letter-spacing: 0.04em; }
+/* opening small caps: real ones only; a fallback face without them shows lowercase */
+.newthought { font-variant-caps: small-caps; font-synthesis-small-caps: none; letter-spacing: 0.04em; }
 
 /* ── running head ─────────────────────────────────────────────────────────── */
 
@@ -233,6 +235,13 @@ small { font-size: 0.875em; }
 .masthead .crumb a { color: inherit; text-decoration: none; }
 .masthead .crumb a:hover { color: var(--accent); }
 .masthead .spacer { flex: 1; }
+.masthead .section {
+  color: var(--fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 28rem;
+}
 
 .masthead button, .masthead .btn, .masthead summary {
   font: inherit;
@@ -248,28 +257,19 @@ small { font-size: 0.875em; }
 }
 .masthead button:hover, .masthead summary:hover { color: var(--accent); }
 .masthead kbd {
+  display: none;                          /* a keyboard hint needs a keyboard */
   font-family: var(--font-code);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--fg-faint);
   margin-left: 0.3em;
 }
-
-#progress {
-  position: fixed;
-  top: calc(var(--head-h) - 2px);
-  left: 0;
-  height: 2px;
-  width: 0;
-  background: var(--accent);
-  z-index: 60;
-  transition: width 90ms linear;
-}
+@media (hover: hover) and (pointer: fine) { .masthead kbd { display: inline; } }
 
 /* contents drawer: a <details>, so it works with JavaScript off */
 .contents-drawer { position: relative; margin: 0; padding: 0; border: 0; }
 .contents-drawer > summary { list-style: none; font-style: normal; padding: 0.35rem 0.2rem; min-height: 0; }
-.contents-drawer > summary::before { content: none; }
 .contents-drawer > summary::-webkit-details-marker { display: none; }
+.contents-drawer > summary::before { content: none; }
 .contents-drawer[open] > summary { color: var(--accent); }
 .contents-drawer > .toc {
   position: absolute;
@@ -281,7 +281,7 @@ small { font-size: 0.875em; }
   overscroll-behavior: contain;
   background: var(--bg);
   border: 1px solid var(--rule-strong);
-  box-shadow: 0 14px 40px rgb(0 0 0 / 0.14);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
   padding: 1rem 1.2rem 1.1rem;
   font-style: normal;
   font-size: 1rem;
@@ -300,6 +300,11 @@ small { font-size: 0.875em; }
     [end];
   justify-content: center;
   padding: 3.5rem 1.5rem 7rem;
+}
+/* the text column is centred; the sidenote rail overhangs to the right */
+@media (min-width: 1081px) {
+  .shell { padding-left: calc(var(--rail-right) + 2.5rem + 1.5rem); }
+  figure.listing, .table-wrap, figure > .diagram { margin-left: -1.1rem; margin-right: -1.1rem; }
 }
 
 main { grid-column: text; min-width: 0; }
@@ -324,7 +329,7 @@ main > h1 + .epigraph { margin-top: -0.6em; }
   font-style: normal;
 }
 .toc ol { list-style: none; margin: 0; padding: 0; }
-.toc li { margin: 0; }
+.toc li { margin: 0; padding: 0; }
 .toc a {
   display: block;
   padding: 0.28rem 0.4rem;
@@ -334,7 +339,7 @@ main > h1 + .epigraph { margin-top: -0.6em; }
 }
 .toc a:hover { color: var(--accent); }
 .toc a[aria-current] { color: var(--accent); border-left-color: var(--accent); }
-.toc .sub { padding-left: 1.1rem; font-size: 0.92em; color: var(--fg-muted); }
+.toc .sub { padding-left: 1.1rem; font-size: 0.95em; color: var(--fg-muted); }
 .toc .sub a { padding: 0.18rem 0.4rem; color: inherit; }
 .toc .chap-num {
   display: inline-block;
@@ -362,7 +367,7 @@ main > h1 + .epigraph { margin-top: -0.6em; }
 .sidenote-number { counter-increment: sidenote-counter; }
 .sidenote-number::after {
   content: counter(sidenote-counter);
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   top: -0.5rem;
   left: 0.1rem;
   position: relative;
@@ -371,7 +376,7 @@ main > h1 + .epigraph { margin-top: -0.6em; }
 }
 .sidenote::before {
   content: counter(sidenote-counter) " ";
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   top: -0.5rem;
   position: relative;
   vertical-align: baseline;
@@ -392,22 +397,25 @@ figcaption {
   margin-top: 0.7em;
   line-height: 1.45;
 }
-figcaption em { font-style: normal; }
+figcaption em, figcaption code { font-style: normal; }
+figcaption .num { font-style: normal; font-weight: 700; color: var(--fg); margin-right: 0.2em; }
 .fullwidth { grid-column: text / end; max-width: none; }
 
 .table-wrap { overflow-x: auto; margin: 1.6em 0; }
 table {
   border-collapse: collapse;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   font-size: 0.95rem;
-  font-variant-numeric: tabular-nums oldstyle-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 th, td {
   text-align: left;
-  padding: 0.45em 0.8em 0.45em 0;
+  padding: 0.45em 1.4em 0.45em 0;
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
+th:last-child, td:last-child { padding-right: 0.4em; }
 thead th {
   font-weight: 700;
   border-top: 1px solid var(--rule-strong);
@@ -419,15 +427,10 @@ tbody tr:last-child td { border-bottom: 1px solid var(--rule-strong); }
 
 code {
   font-family: var(--font-code);
-  font-size: 0.86em;
+  font-size: 0.88em;
   font-variant-ligatures: none;
   font-variant-numeric: normal;
   color: var(--code-fg);
-}
-p code, li code, td code, h2 code, h3 code, dd code {
-  background: var(--bg-code);
-  padding: 0.05em 0.3em;
-  border-radius: 2px;
 }
 
 pre {
@@ -454,39 +457,61 @@ pre .d { color: var(--tok-d); }
 pre .p { color: var(--tok-p); user-select: none; }
 pre .o { color: var(--tok-o); }
 
-/* a listing is a figure: a hairline, the code, a caption beneath */
+/* a listing is one exhibit: filename, code, its output, one caption beneath */
 figure.listing {
   margin: 2em 0;
   border-top: 1px solid var(--rule-strong);
   border-bottom: 1px solid var(--rule-strong);
   background: var(--bg-code);
 }
-figure.listing > figcaption.bar {
-  display: flex;
-  align-items: baseline;
-  gap: 0.9rem;
-  margin: 0;
-  padding: 0.45rem 1.1rem 0;
-  font-size: 0.9rem;
-  font-style: normal;
-  color: var(--fg-faint);
+figure.listing > .file {
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--fg-muted);
+  padding: 0.5rem 1.1rem 0;
 }
-figcaption.bar .file { font-family: var(--font-code); color: var(--fg-muted); font-size: 0.9rem; }
-figcaption.bar .lang { text-transform: lowercase; }
-figcaption.bar .spacer { flex: 1; }
-figcaption.bar .tag { color: var(--fg-faint); font-style: italic; }
-figcaption.bar .tag.verified::before { content: "✓ "; color: var(--ok); }
-figcaption.bar .tag.verified { color: var(--ok); }
-figcaption.bar .tag.error-demo::before { content: "✗ "; }
-figcaption.bar .tag.error-demo { color: var(--warn); }
+figure.listing > .file .lang { font-family: var(--font-prose); font-style: italic; color: var(--fg-faint); margin-left: 0.6em; }
+figure.listing > pre { position: relative; }
+figure.listing > pre.output {
+  background: var(--bg-output);
+  color: var(--fg-muted);
+  border-top: 1px dashed var(--rule-strong);
+  white-space: pre-wrap;
+  padding-top: 0.6rem;
+}
+figure.listing > pre.output::before {
+  content: "output";
+  display: block;
+  font: italic 0.9rem/1.3 var(--font-prose);
+  color: var(--fg-faint);
+  margin-bottom: 0.3rem;
+}
+figure.listing > pre.output.stderr::before { content: "error"; color: var(--warn); }
+figure.listing > figcaption {
+  margin: 0;
+  padding: 0.55rem 1.1rem 0.7rem;
+  border-top: 1px solid var(--rule);
+  background: var(--bg);
+}
+figcaption .tag { font-style: normal; margin-left: 0.5em; font-size: 0.9rem; }
+figcaption .tag.verified { color: var(--ok); }
+figcaption .tag.verified::before { content: "✓ "; }
+figcaption .tag.error-demo { color: var(--warn); }
+figcaption .tag.error-demo::before { content: "✗ "; }
+figcaption .tag.unverified { color: var(--fg-faint); font-style: italic; }
 
 button.copy {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.6rem;
   font: inherit;
+  font-family: var(--font-prose);
   font-size: 0.9rem;
-  background: none;
+  background: var(--bg-code);
   border: 0;
   color: var(--fg-faint);
-  padding: 0 0.1rem;
+  padding: 0.1rem 0.4rem;
   cursor: pointer;
   opacity: 0;
   transition: opacity 120ms ease;
@@ -495,19 +520,30 @@ figure.listing:hover button.copy, button.copy:focus-visible { opacity: 1; }
 button.copy:hover { color: var(--accent); }
 button.copy[data-copied] { color: var(--ok); opacity: 1; }
 
-figure.listing > figcaption.caption {
-  margin: 0;
-  padding: 0.55rem 1.1rem 0.7rem;
-  border-top: 1px solid var(--rule);
-  background: var(--bg);
-  font-size: 0.9rem;
+/* line numbers in the gutter, generated so they never copy with the code */
+pre code.numbered { counter-reset: line; display: block; }
+pre code.numbered .line {
+  display: inline-block;             /* not block: the newline after it is the line break */
+  width: 100%;
+  counter-increment: line;
+  white-space: pre-wrap;              /* a long line wraps under the code, not the gutter */
+  overflow-wrap: anywhere;
+  padding-left: 3.1em;
+  text-indent: -3.1em;
 }
-figure.listing > figcaption.caption .num {
-  font-style: normal;
-  font-weight: 700;
-  color: var(--fg);
-  margin-right: 0.2em;
+pre code.numbered .line::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2.2em;
+  margin-right: 0.9em;
+  text-align: right;
+  text-indent: 0;
+  color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  opacity: 0.7;
 }
+pre code.numbered .line.hl-line { width: auto; }
 
 /* highlighted lines */
 pre .hl-line {
@@ -515,26 +551,6 @@ pre .hl-line {
   width: 100%;
   background: var(--hl-line);
   box-shadow: -1.1rem 0 0 var(--hl-line), 1.1rem 0 0 var(--hl-line);
-}
-
-/* output blocks read as results, not as source */
-.output-block {
-  margin: -2em 0 2em;
-  border-bottom: 1px solid var(--rule-strong);
-  background: var(--bg-output);
-}
-.output-block .label {
-  font-size: 0.9rem;
-  font-style: italic;
-  color: var(--fg-faint);
-  padding: 0.45rem 1.1rem 0;
-}
-.output-block .label::after { content: ":"; }
-.output-block pre {
-  background: none;
-  white-space: pre-wrap;
-  color: var(--fg-muted);
-  padding-top: 0.3rem;
 }
 
 /* code annotations ①②③ */
@@ -561,22 +577,23 @@ pre .hl-line {
   border-radius: 50%;
   border: 1px solid var(--accent);
   color: var(--accent);
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-variant-numeric: lining-nums;
   display: grid;
   place-items: center;
 }
 
-/* ── didactic furniture: rules and small caps, not coloured cards ──────────── */
+/* ── didactic furniture: rules and bold labels, not coloured cards ────────── */
 
-.orient, .crux, .callout, .tip, .aside {
+.orient, .crux, .callout {
   margin: 2em 0;
   padding: 0.9em 0 1em;
   border-top: 1px solid var(--rule-strong);
   border-bottom: 1px solid var(--rule-strong);
 }
+figure.listing + .callout, figure.listing + .orient, figure.listing + .crux { border-top: 0; padding-top: 0.6em; }
 .orient h2, .orient h3, .crux > .title, .callout > .title, .tip > .title, .aside > .title {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-style: normal;
   font-weight: 700;
   color: var(--accent);
@@ -587,23 +604,23 @@ pre .hl-line {
 .orient h3:first-child { margin-top: 0; }
 .orient ul { margin: 0 0 0.5rem; padding-left: 1.1rem; }
 .orient li { margin-bottom: 0.2rem; }
-.orient .meta { color: var(--fg-faint); font-size: 0.9rem; font-style: italic; margin: 0.6rem 0 0; }
+.orient .meta { color: var(--fg-faint); font-size: 0.95rem; font-style: italic; margin: 0.6rem 0 0; }
 .orient > :last-child { margin-bottom: 0; }
 
 .crux { border-color: var(--accent); }
 .crux > :last-child { margin-bottom: 0; }
 .crux p { font-style: italic; }
-.crux p em { font-style: normal; }
+.crux p em, .crux p code { font-style: normal; }
 
 .callout > .title { color: var(--warn); }
 .callout { border-color: var(--warn); }
 .callout > :last-child { margin-bottom: 0; }
 
 .tip, .aside {
-  border: 0;
+  margin: 1.8em 0;
   border-left: 1px solid var(--rule-strong);
   padding: 0.2em 0 0.2em 1.2em;
-  font-size: 0.95em;
+  font-size: 0.97em;
   color: var(--fg-muted);
 }
 .tip > .title { color: var(--ok); }
@@ -664,7 +681,7 @@ details > :last-child { margin-bottom: 0; }
 .exercise > .label::after { content: " " counter(ex); }
 
 /* glossary */
-.glossary dt { font-weight: 600; margin-top: 1.1em; }
+.glossary dt { font-weight: 700; margin-top: 1.1em; }
 .glossary dd { margin: 0.15em 0 0; }
 .glossary .where {
   font-size: 0.9rem;
@@ -698,18 +715,22 @@ details > :last-child { margin-bottom: 0; }
 .chapter-nav .prev .dir::before { content: "← "; }
 .chapter-nav .next .dir::after { content: " →"; }
 
-/* heading permalinks */
+/* heading permalinks hang in the left gutter and appear on hover only */
 .anchor {
-  margin-left: 0.4em;
+  position: absolute;
+  left: -1.3em;
+  width: 1.2em;
+  text-align: right;
   color: var(--fg-faint);
   text-decoration: none;
   opacity: 0;
   font-weight: 400;
   font-size: 0.8em;
+  top: 0.15em;
 }
 h2:hover .anchor, h3:hover .anchor, h4:hover .anchor,
 h2:focus-within .anchor, h3:focus-within .anchor { opacity: 1; }
-@media (hover: none) { .anchor { opacity: 0.35; } }
+@media (hover: none) { .anchor { display: none; } }
 
 /* skip link */
 .skip {
@@ -736,18 +757,30 @@ dialog#search {
   box-shadow: 0 18px 50px rgb(0 0 0 / 0.22);
 }
 dialog#search::backdrop { background: rgb(20 16 10 / 0.35); }
+dialog#search .bar { display: flex; align-items: center; border-bottom: 1px solid var(--rule); }
 dialog#search input {
-  width: 100%;
+  flex: 1;
   font: inherit;
   font-size: 1.05rem;
   padding: 0.9rem 1.1rem;
   border: 0;
-  border-bottom: 1px solid var(--rule);
   background: transparent;
   color: var(--fg);
-  outline: none;
+  min-width: 0;
 }
+dialog#search input:focus-visible { outline: 0; box-shadow: inset 0 -2px 0 var(--accent); }
+dialog#search .close {
+  font: inherit;
+  background: none;
+  border: 0;
+  color: var(--fg-faint);
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+dialog#search .close:hover { color: var(--accent); }
 #search-results { list-style: none; margin: 0; padding: 0.4rem; max-height: 55vh; overflow-y: auto; }
+#search-results li { padding: 0; }
 #search-results li a {
   display: block;
   padding: 0.55rem 0.75rem;
@@ -756,30 +789,37 @@ dialog#search input {
   font-size: 0.95rem;
 }
 #search-results li a:hover, #search-results li a:focus { background: var(--accent-bg); }
-#search-results .where {
-  display: block;
-  font-size: 0.9rem;
-  font-style: italic;
-  color: var(--fg-faint);
-}
+#search-results .where { display: block; font-size: 0.9rem; font-style: italic; color: var(--fg-faint); }
 #search-results .ctx { display: block; font-size: 0.9rem; color: var(--fg-muted); margin-top: 0.1rem; font-style: italic; }
 
 /* ── cover page ───────────────────────────────────────────────────────────── */
 
+body.cover-page .masthead {
+  position: static;
+  background: var(--cover-bg);
+  border: 0;
+  color: rgb(247 243 234 / 0.75);
+  backdrop-filter: none;
+}
+body.cover-page .masthead button, body.cover-page .masthead summary { color: rgb(247 243 234 / 0.8); }
+body.cover-page .masthead button:hover, body.cover-page .masthead summary:hover { color: #fff; }
+body.cover-page .masthead .crumb a { color: inherit; }
+
 .cover { grid-column: text; }
 
 .cover-hero {
-  padding: clamp(3rem, 9vh, 6.5rem) 1.5rem clamp(2.5rem, 7vh, 4.5rem);
+  min-height: calc(100svh - var(--head-h));
+  padding: clamp(3rem, 8vh, 6rem) clamp(1.5rem, 6vw, 5rem) clamp(3rem, 8vh, 5rem);
   background: var(--cover-bg);
   color: var(--cover-fg);
   display: grid;
-  justify-items: center;
-  text-align: center;
-  gap: 1.5rem;
+  align-content: center;
+  justify-items: start;
+  gap: 2rem;
+  outline: 1px solid rgb(247 243 234 / 0.28);
+  outline-offset: -1.25rem;
 }
-.cover-hero .cover-art {
-  width: min(34rem, 100%);
-}
+.cover-hero .cover-art { width: min(30rem, 100%); }
 .cover-hero .cover-art svg {
   display: block;
   width: 100%;
@@ -790,35 +830,37 @@ dialog#search input {
   --dia-warn: #f3d8a8;
   --dia-fill: rgb(247 243 234 / 0.08);
 }
-.cover-hero .cover-text { max-width: 36rem; }
+.cover-hero .cover-text { max-width: 40rem; }
 .cover-hero h1 {
-  font-size: clamp(2.6rem, 1.8rem + 3.2vw, 4rem);
-  line-height: 1.05;
+  font-size: clamp(2.6rem, 1.8rem + 3.4vw, 4.4rem);
+  line-height: 1.02;
   margin: 0 0 0.4em;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   color: inherit;
+  position: static;
 }
 .cover-hero .subtitle {
-  font-size: clamp(1.1rem, 1rem + 0.6vw, 1.35rem);
+  font-size: clamp(1.1rem, 1rem + 0.6vw, 1.4rem);
   line-height: 1.4;
   font-style: italic;
-  margin: 0 auto 1.6rem;
-  max-width: 30rem;
+  margin: 0 0 1.6rem;
+  max-width: 32rem;
   color: rgb(247 243 234 / 0.85);
 }
 .cover-hero .byline {
   font-size: 1rem;
-  margin: 0 0 1.8rem;
+  margin: 0;
   color: rgb(247 243 234 / 0.75);
 }
-/* the way in: a line of text under the jacket, not buttons on it */
+
+/* the way in: one line under the jacket, not buttons on it */
 .cover-cta {
   text-align: center;
   font-size: 1.1rem;
   font-style: italic;
-  margin: 2.5rem 0 0;
+  margin: 1.5rem 0 3rem;
 }
-.cover-cta a { margin: 0 0.9rem; }
+.cover-cta a + a { display: none; }
 
 .cover h2 {
   font-size: 1.6rem;
@@ -826,7 +868,7 @@ dialog#search input {
   margin: 2.5rem 0 1.5rem;
 }
 .contents { list-style: none; padding: 0; margin: 0 0 2.5rem; }
-.contents li { border-top: 1px solid var(--rule); }
+.contents li { border-top: 1px solid var(--rule); padding: 0; }
 .contents li:last-child { border-bottom: 1px solid var(--rule); }
 .contents a {
   display: grid;
@@ -844,8 +886,8 @@ dialog#search input {
   font-size: 1rem;
 }
 .contents .t { font-size: 1.2rem; font-weight: 500; }
-.contents .blurb { display: block; font-size: 0.92rem; color: var(--fg-muted); font-weight: 400; margin-top: 0.2rem; font-style: italic; }
-.extras-link { font-size: 0.92rem; color: var(--fg-muted); text-align: center; }
+.contents .blurb { display: block; font-size: 0.95rem; color: var(--fg-muted); font-weight: 400; margin-top: 0.2rem; font-style: italic; }
+.extras-link, .single-link { font-size: 0.95rem; color: var(--fg-muted); text-align: center; font-style: italic; }
 .front-matter { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule-strong); }
 .front-matter h2 { font-size: 1.35rem; text-align: left; margin: 2em 0 0.5em; }
 
@@ -865,33 +907,46 @@ dialog#search input {
 }
 
 @media (max-width: 720px) {
-  :root { --head-h: 2.6rem; }
+  :root { --head-h: 2.75rem; }
   .shell { display: block; padding: 2rem 1.15rem 4.5rem; }
-  .masthead { padding: 0 1rem; gap: 0.9rem; }
+  p, li, .sidenote, dd { hyphens: auto; }
+  .masthead { padding: 0 1rem; gap: 0.6rem; }
   .masthead .crumb .book { display: none; }
   .masthead .crumb .sep { display: none; }
-  .cover-hero { padding: 3rem 1.15rem 2.5rem; }
+  .masthead .section { display: none; }
+  .masthead button, .masthead summary { min-height: 2.75rem; display: inline-flex; align-items: center; padding: 0 0.5rem; }
+  /* the drawer is a sheet under the running head, never a menu hung off a button */
+  .contents-drawer { position: static; }
+  .contents-drawer > .toc {
+    position: fixed;
+    left: 0.75rem; right: 0.75rem; top: calc(var(--head-h) + 0.5rem);
+    width: auto;
+    max-height: calc(100dvh - var(--head-h) - 1.5rem);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  }
+  .cover-hero { min-height: calc(100svh - var(--head-h)); padding: 3rem 1.5rem 2.5rem; outline-offset: -0.9rem; }
   .cover-hero h1 { font-size: clamp(2.2rem, 1.6rem + 4vw, 2.9rem); }
-  .cover-cta { margin-top: 1.8rem; }
   .chapter-nav { flex-direction: column; gap: 1.2rem; margin-top: 3.5rem; }
   .chapter-nav a { max-width: none; }
   .chapter-nav .next { margin-left: 0; text-align: left; }
   figure.listing { margin-left: -1.15rem; margin-right: -1.15rem; }
-  .output-block { margin-left: -1.15rem; margin-right: -1.15rem; }
-  pre { padding: 0.85rem 1.15rem; font-size: 0.9rem; }
+  /* a diagram keeps a legible size and scrolls inside its figure, full-bleed */
+  .diagram { margin-left: -1.15rem; margin-right: -1.15rem; overflow-x: auto; }
+  .diagram > svg { min-width: 34rem; padding: 0 1.15rem; box-sizing: content-box; }
+  pre { padding: 0.85rem 1.15rem; font-size: 0.875rem; }
   .hl-line { box-shadow: -1.15rem 0 0 var(--hl-line), 1.15rem 0 0 var(--hl-line); }
   .table-wrap { margin-left: -1.15rem; margin-right: -1.15rem; padding: 0 1.15rem; }
   dialog#search { margin-top: 4vh; width: 94vw; }
   .contents .t { font-size: 1.1rem; }
-  button.copy { opacity: 1; }
+  button.copy { opacity: 1; min-height: 2.2rem; }
 }
 
 /* touch: every control is a comfortable target */
 @media (pointer: coarse) {
-  .masthead button, .masthead .btn, .masthead summary { min-height: 2.4rem; display: inline-flex; align-items: center; }
-  button.copy { opacity: 1; min-height: 1.8rem; }
-  summary { padding: 0.3rem 0; min-height: 2.2rem; display: flex; align-items: center; }
-  .toc a { min-height: 2.3rem; display: flex; align-items: center; }
+  .masthead button, .masthead .btn, .masthead summary { min-height: 2.75rem; display: inline-flex; align-items: center; }
+  button.copy { opacity: 1; min-height: 2.2rem; }
+  summary { padding: 0.3rem 0; min-height: 2.4rem; display: flex; align-items: center; }
+  .toc a { min-height: 2.5rem; display: flex; align-items: center; }
   #search-results li a { padding: 0.75rem 0.75rem; }
 }
 
@@ -916,16 +971,24 @@ dialog#search input {
 /* ── print ────────────────────────────────────────────────────────────────── */
 
 @media print {
-  @page { size: A4; margin: 20mm 18mm; }
+  @page {
+    size: A4;
+    margin: 22mm 25mm 24mm;
+    @top-right { content: string(chapter); font: italic 9pt "Iowan Old Style", Palatino, Georgia, serif; color: #444; }
+    @bottom-center { content: counter(page); font: 9pt "Iowan Old Style", Palatino, Georgia, serif; }
+  }
   :root { --bg: #fff; --fg: #000; --bg-code: #f4f2ec; --bg-raised: #f7f5f0; --bg-output: #f0ede6; }
-  body { font-size: 10.5pt; background: #fff; color: #000; }
-  .masthead, .chapter-nav, .anchor, button.copy, #progress, dialog, .skip, .cover-cta, .contents-drawer { display: none !important; }
+  body { font-size: 11pt; line-height: 1.5; background: #fff; color: #000; }
+  h1 { string-set: chapter content(); }
+  .masthead, .chapter-nav, .anchor, button.copy, #progress, dialog, .skip, .cover-cta, .contents-drawer, .single-link { display: none !important; }
   .shell { display: block; padding: 0; max-width: none; }
-  main { grid-column: auto; max-width: none; }
+  main { grid-column: auto; max-width: 128mm; }     /* ~70 characters at 11pt */
   p, li { orphans: 3; widows: 3; }
   h1, h2, h3, h4 { break-after: avoid; }
   figure, table, pre, blockquote, .callout, .orient, .crux { break-inside: avoid; }
+  details::details-content { display: block !important; content-visibility: visible !important; }
   details > :not(summary) { display: block !important; }
+  summary::before { content: ""; }
   .sidenote, .marginnote {
     float: none; display: block; width: auto; margin: 0.6em 0 0.6em 1.5em;
     font-size: 9pt; border-left: 1px solid #999; padding-left: 0.7em;
@@ -933,14 +996,16 @@ dialog#search input {
   a { color: #000; text-decoration: none; }
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8pt; color: #444; word-break: break-all; }
   pre code { color: #000; }
-  pre .c { color: #666; }
+  pre .c { color: #555; }
   pre .s, pre .n, pre .k, pre .t, pre .f, pre .d { color: #000; }
   pre .k, pre .f { font-weight: 700; }
   .cover-hero {
-    margin: 0; min-height: 85vh; display: flex; flex-direction: column; justify-content: center;
-    break-after: page; background: #fff; color: #000; border: 1px solid #000;
+    min-height: 85vh; display: flex; flex-direction: column; justify-content: center;
+    break-after: page; background: #fff; color: #000; outline: 1px solid #000; outline-offset: -8mm;
   }
-  .cover-hero .subtitle, .cover-hero .byline { color: #333; }
+  .cover-hero h1 { font-size: 34pt; }
+  .cover-hero .subtitle { font-size: 14pt; color: #333; }
+  .cover-hero .byline { color: #333; }
   .book-single .chapter { content-visibility: visible; break-before: page; }
 }
 
@@ -952,6 +1017,7 @@ dialog#search input {
 <header class="masthead">
   <span class="crumb"><a class="book" href="#top">A Rich Fixture</a><span class="sep"> &nbsp;·&nbsp; </span>Complete</span>
   <span class="spacer"></span>
+  <span class="section" id="running-section"></span>
   <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
 <li><a href="#ch01-shapes"><span class="chap-num">1</span>Shapes of a Chapter</a>
 <ol class="sub">
@@ -959,14 +1025,14 @@ dialog#search input {
 <li><a href="#a-mental-model">A mental model</a></li>
 <li><a href="#practice">Practice</a></li>
 <li><a href="#what-to-remember">What to remember</a></li>
+<li><a href="#inline-regressions">Inline regressions</a></li>
 </ol>
 </li>
 </ol>
 </nav></details>
-  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button" aria-label="Theme">Auto</button>
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
 </header>
-<div id="progress"></div>
 <section class="cover-hero">
 
 <div class="cover-text">
@@ -996,41 +1062,30 @@ dialog#search input {
 <p class="meta">~20 min · 4 exercises</p>
 </div>
 
-<h2 id="the-problem">The problem<a class="anchor" href="#the-problem" aria-label="Link to this section">#</a></h2>
+<h2 id="the-problem"><a class="anchor" href="#the-problem" aria-label="Link to this section">#</a>The problem</h2>
 
 <p>Here is a function that looks right and is wrong.<label for="sn-1" class="margin-toggle sidenote-number"></label> <input type="checkbox" id="sn-1" class="margin-toggle"> <span class="sidenote">The bug is subtle enough that it survived code review twice in the original codebase this is drawn from.</span></p>
 
 <figure class="listing" id="listing-1-1">
-<figcaption class="bar">
-<span class="file">code/average.py</span>
-<span class="lang">python</span>
-<span class="spacer"></span>
-<span class="tag verified">verified</span>
-<button class="copy" type="button">Copy</button>
-</figcaption>
-<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
-    total = <span class="t">sum</span>(values)
-<span class="hl-line">    <span class="k">return</span> total / <span class="t">len</span>(values)</span>
-
-<span class="t">print</span>(average([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>]))</code></pre>
-<figcaption class="caption"><span class="num">Listing 1-1.</span> A first attempt at a running average.</figcaption>
+<div class="file">code/average.py <span class="lang">python</span></div>
+<pre><code class="language-python numbered"><span class="line"><span class="k">def</span> <span class="f">average</span>(values):</span>
+<span class="line">    total = <span class="t">sum</span>(values)</span>
+<span class="line hl-line">    <span class="k">return</span> total / <span class="t">len</span>(values)</span>
+<span class="line"></span>
+<span class="line"><span class="t">print</span>(average([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>]))</span></code><button class="copy" type="button" aria-label="Copy listing 1-1">Copy</button></pre>
+<pre class="output" aria-label="Output">2.5</pre>
+<figcaption><span class="num">Listing 1-1.</span> A first attempt at a running average.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
 </figure>
-<div class="output-block"><div class="label">Output</div><pre>2.5</pre></div>
 
 <p>That works. Now watch what happens on the empty list.</p>
 
 <figure class="listing" id="listing-1-2">
-<figcaption class="bar">
-<span class="lang">python</span>
-<span class="spacer"></span>
-<span class="tag error-demo">error demo</span>
-<button class="copy" type="button">Copy</button>
-</figcaption>
-<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
-    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)
-
-average([])</code></pre>
-<figcaption class="caption"><span class="num">Listing 1-2.</span></figcaption>
+<div class="file"><span class="lang">python</span></div>
+<pre><code class="language-python numbered"><span class="line"><span class="k">def</span> <span class="f">average</span>(values):</span>
+<span class="line">    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</span>
+<span class="line"></span>
+<span class="line">average([])</span></code><button class="copy" type="button" aria-label="Copy listing 1-2">Copy</button></pre>
+<figcaption><span class="num">Listing 1-2.</span><span class="tag error-demo" title="This listing fails on purpose; the error shown is the real one">raises, as intended</span></figcaption>
 </figure>
 
 <div class="callout">
@@ -1049,10 +1104,10 @@ with <code>is</code> rather than <code>==</code>.</p>
 
 </details>
 
-<h2 id="a-mental-model">A mental model<a class="anchor" href="#a-mental-model" aria-label="Link to this section">#</a></h2>
+<h2 id="a-mental-model"><a class="anchor" href="#a-mental-model" aria-label="Link to this section">#</a>A mental model</h2>
 
 <figure>
-<svg viewBox="0 0 640 150" role="img" aria-labelledby="dia1-t">
+<div class="diagram"><svg viewBox="0 0 640 150" role="img" aria-labelledby="dia1-t">
   <title id="dia1-t">Values flow into sum, then into division by the count</title>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
@@ -1074,14 +1129,14 @@ with <code>is</code> rather than <code>==</code>.</p>
     <path d="M 148 74 L 250 74"/>
     <path d="M 388 74 L 490 74"/>
   </g>
-</svg>
-<figcaption>Figure 1-1. The count is read separately from the sum, so an empty input
+</svg></div>
+<figcaption><span class="num">Figure 1-1.</span> The count is read separately from the sum, so an empty input
 only fails at the second step.</figcaption>
 </figure>
 
 <div class="table-wrap"><table><thead><tr><th>Input</th><th style="text-align:right"><code>sum</code></th><th style="text-align:right"><code>len</code></th><th>Result</th></tr></thead><tbody><tr><td><code>[1,2,3,4]</code></td><td style="text-align:right">10</td><td style="text-align:right">4</td><td><code>2.5</code></td></tr><tr><td><code>[2]</code></td><td style="text-align:right">2</td><td style="text-align:right">1</td><td><code>2.0</code></td></tr><tr><td><code>[]</code></td><td style="text-align:right">0</td><td style="text-align:right">0</td><td>raises</td></tr></tbody></table></div>
 
-<h2 id="practice">Practice<a class="anchor" href="#practice" aria-label="Link to this section">#</a></h2>
+<h2 id="practice"><a class="anchor" href="#practice" aria-label="Link to this section">#</a>Practice</h2>
 
 <div class="exercises">
 <div class="exercise">
@@ -1090,16 +1145,12 @@ only fails at the second step.</figcaption>
 
 
 <figure class="listing">
-<figcaption class="bar">
-<span class="lang">python</span>
-<span class="spacer"></span>
-<span class="tag unverified">illustrative</span>
-<button class="copy" type="button">Copy</button>
-</figcaption>
+<div class="file"><span class="lang">python</span></div>
 <pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
     <span class="k">if</span> ____:
         <span class="k">return</span> <span class="k">None</span>
-    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</code></pre>
+    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</code><button class="copy" type="button" aria-label="Copy">Copy</button></pre>
+<figcaption><span class="tag unverified">illustrative</span></figcaption>
 </figure>
 
 <details><summary>Solution</summary>
@@ -1114,7 +1165,7 @@ the question being asked, and it works for any sequence.</p>
 </div>
 </div>
 
-<h2 id="what-to-remember">What to remember<a class="anchor" href="#what-to-remember" aria-label="Link to this section">#</a></h2>
+<h2 id="what-to-remember"><a class="anchor" href="#what-to-remember" aria-label="Link to this section">#</a>What to remember</h2>
 
 <ul>
 <li><code>sum</code> of an empty sequence is <code>0</code>, not an error</li>
@@ -1125,14 +1176,20 @@ the question being asked, and it works for any sequence.</p>
 <li>and this</li>
 </ul></li>
 </ul>
+
+<h2 id="inline-regressions"><a class="anchor" href="#inline-regressions" aria-label="Link to this section">#</a>Inline regressions</h2>
+
+<p>A link whose text holds code, <a href="https://docs.python.org/3/library/re.html" target="_blank" rel="noopener">the <code>re</code> reference</a>, and a table with backslashes (regression: nested placeholders and <code>\d</code>).</p>
+
+<div class="table-wrap"><table><thead><tr><th>Construct</th><th>Example</th></tr></thead><tbody><tr><td>class</td><td><code>[a-z]</code>, <code>\d</code></td></tr><tr><td>backreference</td><td><code>\1</code></td></tr><tr><td>pipe</td><td><code>a|b</code></td></tr></tbody></table></div>
 </section>
 </main>
 </div>
 <dialog id="search" aria-label="Search the book">
-  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
   <ul id="search-results"></ul>
 </dialog>
-<script>window.__TECHBOOK_INDEX__=[{"chapter": "Shapes of a Chapter", "heading": "(intro)", "href": "#ch01-shapes", "text": " Every chapter opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program. What you'll learn Read a fenced block's contract and know whether its output was verified Tell a sidenote from a callout, and know when each earns its place Predict what a snippet prints before running it Assumes you know Basic Python syntax. Nothing else. ~20 min \u00b7 4 exercises"}, {"chapter": "Shapes of a Chapter", "heading": "The problem", "href": "#the-problem", "text": "Here is a function that looks right and is wrong. The bug is subtle enough that it survived code review twice in the original codebase this is drawn from. def average(values): total = sum(values) return total / len(values) print(average([1, 2, 3, 4])) That works. Now watch what happens on the empty list. def average(values): return sum(values) / len(values) average([]) This trips people up An empty sequence is not an error in sum \u2014 it returns 0 quite happily. The failure surfaces one operation later, in the division, which is why the traceback points somewhere the reader did not expect. Predict: what does average([2]) return \u2014 2 or 2.0 ? 2.0 . True division always produces a float in Python 3, even when the operands divide evenly. This matters the moment you compare the result to an integer with is rather than == ."}, {"chapter": "Shapes of a Chapter", "heading": "A mental model", "href": "#a-mental-model", "text": "Values flow into sum, then into division by the count values sum() / len() Figure 1-1. The count is read separately from the sum, so an empty input only fails at the second step. `[1,2,3,4]` 10 4 `2.5` `[2]` 2 1 `2.0` `[]` 0 0 raises"}, {"chapter": "Shapes of a Chapter", "heading": "Practice", "href": "#practice", "text": "Exercise Fill the single blank so the function returns None for empty input. def average(values): if ____: return None return sum(values) / len(values) Solution not values . Prefer it over len(values) == 0 : it reads as the question being asked, and it works for any sequence. Exercise Now write it from scratch, raising ValueError instead."}, {"chapter": "Shapes of a Chapter", "heading": "What to remember", "href": "#what-to-remember", "text": "`sum` of an empty sequence is `0`, not an error Errors often surface one step after the operation that caused them Nested lists work too: like this and this"}];</script>
+<script>window.__TECHBOOK_INDEX__=[{"chapter": "Shapes of a Chapter", "heading": "(intro)", "href": "#ch01-shapes", "text": " Every chapter opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program. What you'll learn Read a fenced block's contract and know whether its output was verified Tell a sidenote from a callout, and know when each earns its place Predict what a snippet prints before running it Assumes you know Basic Python syntax. Nothing else. ~20 min \u00b7 4 exercises"}, {"chapter": "Shapes of a Chapter", "heading": "The problem", "href": "#the-problem", "text": "Here is a function that looks right and is wrong. The bug is subtle enough that it survived code review twice in the original codebase this is drawn from. def average(values): total = sum(values) return total / len(values) print(average([1, 2, 3, 4])) That works. Now watch what happens on the empty list. def average(values): return sum(values) / len(values) average([]) This trips people up An empty sequence is not an error in sum \u2014 it returns 0 quite happily. The failure surfaces one operation later, in the division, which is why the traceback points somewhere the reader did not expect. Predict: what does average([2]) return \u2014 2 or 2.0 ? 2.0 . True division always produces a float in Python 3, even when the operands divide evenly. This matters the moment you compare the result to an integer with is rather than == ."}, {"chapter": "Shapes of a Chapter", "heading": "A mental model", "href": "#a-mental-model", "text": "Values flow into sum, then into division by the count values sum() / len() Figure 1-1. The count is read separately from the sum, so an empty input only fails at the second step. `[1,2,3,4]` 10 4 `2.5` `[2]` 2 1 `2.0` `[]` 0 0 raises"}, {"chapter": "Shapes of a Chapter", "heading": "Practice", "href": "#practice", "text": "Exercise Fill the single blank so the function returns None for empty input. def average(values): if ____: return None return sum(values) / len(values) Solution not values . Prefer it over len(values) == 0 : it reads as the question being asked, and it works for any sequence. Exercise Now write it from scratch, raising ValueError instead."}, {"chapter": "Shapes of a Chapter", "heading": "What to remember", "href": "#what-to-remember", "text": "`sum` of an empty sequence is `0`, not an error Errors often surface one step after the operation that caused them Nested lists work too: like this and this"}, {"chapter": "Shapes of a Chapter", "heading": "Inline regressions", "href": "#inline-regressions", "text": "A link whose text holds code, [the `re` reference](https://docs.python.org/3/library/re.html), and a table with backslashes (regression: nested placeholders and `\\d`). class `[a-z]`, `\\d` backreference `\\1` pipe `a|b`"}];</script>
 <script>
 /* techbook — book.js
    Everything here is an enhancement. The book must be fully readable with this
@@ -1163,9 +1220,25 @@ the question being asked, and it works for any sequence.</p>
   function labelTheme(t) {
     var btn = document.getElementById("theme-toggle");
     if (btn) {
-      btn.textContent = t === "light" ? "Light" : t === "dark" ? "Dark" : "Auto";
-      btn.setAttribute("aria-label", "Theme: " + t + ". Click to change.");
+      var state = t === "light" ? "light" : t === "dark" ? "dark" : "automatic";
+      btn.textContent = "Theme";
+      btn.setAttribute("aria-label", "Colour scheme: " + state + ". Click to change.");
+      btn.setAttribute("title", "Colour scheme: " + state + ". Click to change.");
     }
+  }
+
+  /* ── print: open every <details>, then put them back ──────────────────── */
+  function wirePrint() {
+    window.addEventListener("beforeprint", function () {
+      document.querySelectorAll("details:not([open])").forEach(function (d) {
+        d.setAttribute("data-was-closed", ""); d.open = true;
+      });
+    });
+    window.addEventListener("afterprint", function () {
+      document.querySelectorAll("details[data-was-closed]").forEach(function (d) {
+        d.open = false; d.removeAttribute("data-was-closed");
+      });
+    });
   }
 
   /* ── copy buttons ──────────────────────────────────────────────────────── */
@@ -1200,9 +1273,9 @@ the question being asked, and it works for any sequence.</p>
     });
   }
 
-  /* ── scrollspy + reading progress ──────────────────────────────────────── */
+  /* ── scrollspy: the running head shows the current section ─────────────── */
   function wireScroll() {
-    var bar = document.getElementById("progress");
+    var running = document.getElementById("running-section");
     var links = Array.prototype.slice.call(
       document.querySelectorAll('.toc a[href*="#"]'));
     var map = {};
@@ -1217,12 +1290,6 @@ the question being asked, and it works for any sequence.</p>
     var ticking = false;
     function update() {
       ticking = false;
-      if (bar) {
-        var doc = document.documentElement;
-        var max = doc.scrollHeight - doc.clientHeight;
-        var pct = max > 0 ? (doc.scrollTop / max) * 100 : 0;
-        bar.style.width = Math.min(100, Math.max(0, pct)) + "%";
-      }
       if (!targets.length) return;
       var line = window.scrollY + (window.innerHeight * 0.28);
       var active = null;
@@ -1232,6 +1299,10 @@ the question being asked, and it works for any sequence.</p>
       links.forEach(function (a) { a.removeAttribute("aria-current"); });
       if (active && map[active.id]) {
         map[active.id].setAttribute("aria-current", "location");
+      }
+      if (running) {
+        var label = active && active.tagName === "H2" ? active.textContent.replace(/^#\s*/, "").trim() : "";
+        if (running.textContent !== label) running.textContent = label;
       }
     }
     function onScroll() {
@@ -1335,6 +1406,8 @@ the question being asked, and it works for any sequence.</p>
       }
     });
     dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+    var closeBtn = dlg.querySelector("button.close");
+    if (closeBtn) closeBtn.addEventListener("click", function () { dlg.close(); });
 
     document.addEventListener("keydown", function (e) {
       var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
@@ -1368,6 +1441,7 @@ the question being asked, and it works for any sequence.</p>
     wireScroll();
     wireSearch();
     wireKeys();
+    wirePrint();
   }
 
   if (document.readyState === "loading") {

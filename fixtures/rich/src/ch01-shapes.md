@@ -128,3 +128,14 @@ the question being asked, and it works for any sequence.</p>
 - Nested lists work too:
   - like this
   - and this
+
+
+## Inline regressions
+
+A link whose text holds code, [the `re` reference](https://docs.python.org/3/library/re.html), and a table with backslashes (regression: nested placeholders and `\d`).
+
+| Construct | Example |
+|---|---|
+| class | `[a-z]`, `\d` |
+| backreference | `\1` |
+| pipe | `a\|b` |

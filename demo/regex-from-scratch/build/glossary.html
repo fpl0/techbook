@@ -24,6 +24,8 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 </li>
 <li><a href="ch03-all-paths-at-once.html"><span class="chap-num">3</span>All Paths at Once</a>
 </li>
+<li><a href="ch04-making-it-trustworthy.html"><span class="chap-num">4</span>Making It Trustworthy</a>
+</li>
 </ol>
 <ol class="extras"><li><a href="glossary.html" aria-current="page">Glossary</a></li></ol>
 </nav></details>
@@ -39,14 +41,21 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <dt id="term-backtracking">backtracking</dt><dd>a search strategy in which each choice point keeps its untried alternatives and a failure returns control to the nearest one that still has some <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-catastrophic-backtracking">catastrophic backtracking</dt><dd>the failing case of a backtracking matcher whose cost grows exponentially with the input <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-continuation-style">continuation style</dt><dd>this book's name for compiling each node with the state that follows it already in hand, so that no arrow is ever left dangling <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-differential-testing">differential testing</dt><dd>running two implementations on the same inputs and treating every disagreement as a finding to investigate <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
 <dt id="term-epsilon-closure">epsilon closure</dt><dd>every state reachable from a given state along split arrows, without consuming a character <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
+<dt id="term-exhaustive-enumeration">exhaustive enumeration</dt><dd>generating every input up to a stated size bound rather than a sample of them <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
 <dt id="term-fragment">fragment</dt><dd>a sub-machine with one entry and one exit, produced by compiling one node <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-give-back">give back</dt><dd>a star surrendering one character of its run so the rest of the pattern can try again <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-lazy-dfa">lazy DFA</dt><dd>a DFA whose states are live sets built as the text demands them and kept as a bounded cache that is cleared when full <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
+<dt id="term-lazy-quantifier">lazy quantifier</dt><dd>a quantifier followed by <code>?</code>, which in Python matches as few repetitions as it can before letting the rest of the pattern try <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
+<dt id="term-leftmost-first">leftmost-first</dt><dd>the Perl and Python rule for choosing among matches: the earliest start, then the alternative the pattern reaches first <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
+<dt id="term-leftmost-longest">leftmost-longest</dt><dd>the POSIX rule: the earliest start, then the longest match from it <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
 <dt id="term-live-set">live set</dt><dd>the set of states the machine occupies before reading the next character, holding only states that can consume a character plus the match state <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-match-state">match state</dt><dd>the state with no arrows, whose occupation at the end of the text means the pattern matched <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-match-here">match_here</dt><dd>the recursive core of the matcher, which asks only whether the pattern matches at the start of the text <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-pike-vm">Pike VM</dt><dd>Rob Pike's form of the simulation in which each live state is a thread carrying its saved positions, so that captures can be reported <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-polynomial-blow-up">polynomial blow-up</dt><dd>the failing case of adjacent quantifiers, whose cost grows as a power of the input equal to the number of quantifiers <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-possessive-quantifier">possessive quantifier</dt><dd>a quantifier followed by <code>+</code>, which in Python 3.11 and later takes as many repetitions as it can and never gives any back <a class="where" href="ch04-making-it-trustworthy.html">ch. 4</a></dd>
 <dt id="term-precedence-level">precedence level</dt><dd>one row of the operator-binding order, which in a recursive-descent parser is one method <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-recursive-descent">recursive descent</dt><dd>a parser made of one function per grammar rule, each calling the rules it depends on <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-simulation">simulation</dt><dd>running the machine over the text by advancing every live state together, rather than one path at a time <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>

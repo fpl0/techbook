@@ -132,22 +132,40 @@ attack. Execution is offline by default; a block that needs the network must say
 
 ## Does it work?
 
-`demo/regex-from-scratch/` is a real three-chapter book (4,504 words, 17 blocks)
-written with the skill. The gate caught four defects that reading the draft did not:
+`demo/regex-from-scratch/` is a four-chapter book generated end to end through the
+skill on 2026-09-05: three research subagents wrote cited notes, the outline was
+built from those notes, four chapter-writer subagents ran in sequence with each
+predecessor's summary, and every gate ran before render. Open
+`demo/regex-from-scratch/build/index.html`.
 
-| Caught | Why it mattered |
+```
+A Regex Engine From Scratch
+──────────────────────────────────────────────
+Chapters    4            Prose words   15,069
+Listings   31  verified  23 · illustrative 8 (exercise stubs)
+Citations  83  live 77 · archived 3 · blocked 3 (doi/ACM 403, one bad cert)
+Prose      em dash/1k 0.0 · sentence stdev 11.4 · ban-list 0 · craft 0
+Continuity clean
+```
+
+Three things the pipeline caught that a careful read would not have:
+
+| Caught by | Finding |
 |---|---|
-| Prose claimed cost "doubles per character" | Measured growth was polynomial. Exponential blowup needs *nested* quantifiers, which the book's toy language can't express. The claim was wrong. |
-| Hand-written traceback in an error demo | Real stderr had frames the book omitted. |
-| `(a*)*b` overflowed the stack | **A real bug in the book's own simulator** — split states are never stored, so a cycle running *through* splits went undetected. The fix is now the chapter's misconception callout. |
-| Chapters 2 and 3 in separate exec sessions | Chapter 3's code referenced chapter 2's compiler and could never have run for a reader. |
+| exhaustive differential test (`code/difftest.py`) | The first parser accepted `a+?`, which Python reads as a lazy quantifier. 171 mismatches in 11,970 cases; the parser now refuses stacked quantifiers the way `re` refuses `a**`. Chapter 4 tells the story. |
+| research notes with hedges preserved | Both famous regex outages were polynomial, not exponential; Cloudflare's post never says "exponential". The chapter says so, with the step counts. |
+| `verify.py` output diffing | Every timing table and every traceback in the book is what the code printed on the author's machine, paths trimmed. |
 
-Two factual errors and one genuine bug, none of which a careful read would have found.
+The presentation was reviewed by a design-critic subagent (`.critique/design-review.md`)
+and checked in a real browser at desktop and phone widths, light and dark.
 
-Reproduce it:
+Reproduce the gates:
 
 ```sh
-python3 skill/scripts/verify.py demo/regex-from-scratch --no-cache
+python3 skill/scripts/verify.py demo/regex-from-scratch --strict
+python3 skill/scripts/prose.py demo/regex-from-scratch
+python3 skill/scripts/continuity.py demo/regex-from-scratch
+python3 skill/scripts/urlcheck.py demo/regex-from-scratch
 python3 skill/scripts/render.py demo/regex-from-scratch
 open demo/regex-from-scratch/build/index.html
 ```
@@ -172,8 +190,8 @@ Three choices where the research points away from the obvious answer:
 ## Layout
 
 ```
-skill/            SKILL.md (174 lines), references (725), assets (1,002), scripts (1,706)
-skill/evals/      4 evals, 15 assertions
+skill/            SKILL.md, references (7 files), assets (book.css, book.js), scripts (6)
+skill/evals/      4 evals, 23 assertions
 fixtures/         good / bad / rich — regression fixtures for the scripts
 demo/             a real book built with the skill
 ```
@@ -186,8 +204,9 @@ demo/             a real book built with the skill
 Issues and pull requests welcome. Before opening a PR, run the regression pass:
 
 ```sh
-python3 skill/scripts/verify.py fixtures/bad          # expect exit 2
+python3 skill/scripts/verify.py fixtures/bad          # expect exit 2, eight lint errors
 python3 skill/scripts/verify.py fixtures/good --no-cache
+python3 skill/scripts/verify.py fixtures/rich --no-cache && python3 skill/scripts/render.py fixtures/rich
 python3 skill/scripts/verify.py demo/regex-from-scratch --strict
 python3 skill/scripts/render.py demo/regex-from-scratch
 ```

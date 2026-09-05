@@ -11,20 +11,20 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <link rel="stylesheet" href="assets/book.css">
 
 </head>
-<body>
+<body class="cover-page">
 <a class="skip" href="#main">Skip to content</a>
 <header class="masthead">
   <span class="crumb"><a class="book" href="index.html">A Rich Fixture</a><span class="sep"> &nbsp;·&nbsp; </span>Cover</span>
   <span class="spacer"></span>
+  <span class="section" id="running-section"></span>
   <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
 <li><a href="ch01-shapes.html"><span class="chap-num">1</span>Shapes of a Chapter</a>
 </li>
 </ol>
 </nav></details>
-  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button" aria-label="Theme">Auto</button>
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
 </header>
-<div id="progress"></div>
 <section class="cover-hero">
 
 <div class="cover-text">
@@ -38,15 +38,15 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <p class="cover-cta"><a href="ch01-shapes.html">Begin with chapter 1 →</a><a href="#contents">Contents</a></p>
 <h2 id="contents">Contents</h2>
 <ol class="contents">
-<li><a href="ch01-shapes.html"><span class="n">1</span><span class="t">Shapes of a Chapter<span class="blurb">Every chapter opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program. What you'll learn…</span></span></a></li>
+<li><a href="ch01-shapes.html"><span class="n">1</span><span class="t">Shapes of a Chapter<span class="blurb">Every chapter opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program.</span></span></a></li>
 </ol>
 
 
-<p style="margin-top:2.5rem"><a href="book.html">Read as a single page</a> — everything in one file, for offline reading, search across the whole book, or printing.</p>
+<p class="single-link"><a href="book.html">Read as a single page</a> — one file, for offline reading, search across the whole book, or printing.</p>
 </main>
 </div>
 <dialog id="search" aria-label="Search the book">
-  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
   <ul id="search-results"></ul>
 </dialog>
 <script src="assets/search.js"></script>

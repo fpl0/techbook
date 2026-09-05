@@ -207,6 +207,92 @@
         ],
         "prose_py_word_count": 3906
       }
+    },
+    "ch04": {
+      "status": "drafted",
+      "file": "src/ch04-making-it-trustworthy.md",
+      "summary": "The reader can now enumerate every small pattern and short string, run tinyre against re on all of them, read a mismatch report and classify the fault as simulator, parser or meaning, list what tinyre gave up (anchors, classes, Unicode, captures, lazy and possessive quantifiers, lookaround, backreferences) with what RE2 and Python re do for each, and name the automata engines (RE2, Go regexp, Rust regex, .NET 7 NonBacktracking) against the backtracking defaults (Perl, PCRE, Python, Java, JavaScript), including the terminology trap that PCRE and Java call backtracking 'NFA'. code/difftest.py enumerates patterns of up to 4 pieces over nine pieces and strings of up to 3 letters over ab, skipping what either engine rejects, comparing fullmatch only. Listing 4-1 is difftest.py (10080 cases, 0 mismatches); Listing 4-2 prints 672 patterns, 15 strings, 10,080 cases, 0 mismatches; Listing 4-3 is the expect-error for tinyre.compile('a+?') ('multiple repeat at 2'); Listing 4-4 monkeypatches machine.compile_node so a? compiles as a and shows 334 mismatches with the five smallest cases printed. The story: the first parser allowed a second quantifier, so a+? parsed as (a+)? and a?+ as (a?)+; the test found 171 mismatches in 11,970 cases over 56 patterns, all stacked quantifiers, because Python reads +? as lazy and ?+ as possessive (3.11+); resolved by refusing with 'multiple repeat'. Figure 4-1 is Rust's engine ladder (lazy DFA, one-pass DFA, bounded backtracker, PikeVM). Closes with 'What this book did not cover': classes, anchors, Unicode, captures, POSIX vs Perl semantics, DFAs; next reads are Cox 2007 on caching the NFA into a DFA and Cox 2009 on the Pike VM. No forward tension; last chapter.",
+      "terms": [
+        "differential testing",
+        "exhaustive enumeration",
+        "lazy quantifier",
+        "possessive quantifier",
+        "leftmost-first",
+        "leftmost-longest",
+        "lazy DFA"
+      ],
+      "numbers": {
+        "machine": "Apple Silicon Mac, CPython 3.14",
+        "code_lines": {
+          "difftest.py": 45
+        },
+        "pieces": 9,
+        "max_pattern_pieces": 4,
+        "string_alphabet": "ab",
+        "max_string_length": 3,
+        "raw_pattern_strings": 7380,
+        "rejected_by_both": 6100,
+        "accepted_only_by_re": 608,
+        "accepted_only_by_re_breakdown": {
+          "empty alternative or group": 481,
+          "stacked quantifier": 127
+        },
+        "accepted_only_by_tinyre": 0,
+        "patterns_both_accept": 672,
+        "strings": 15,
+        "cases": 10080,
+        "mismatches": 0,
+        "nullable_patterns": 90,
+        "run_time_s": "about 0.1",
+        "old_parser": {
+          "patterns": 798,
+          "cases": 11970,
+          "mismatches": 171,
+          "mismatching_patterns": 56,
+          "first_reported": "'a+?' on '' (tinyre True), 'a?+' on 'aa' (tinyre True)"
+        },
+        "injected_bug_a?_as_a": {
+          "cases": 10080,
+          "mismatches": 334,
+          "first_case": "'a?' on ''"
+        },
+        "injected_bug_a*_as_a?": {
+          "cases": 10080,
+          "mismatches": 346,
+          "first_case": "'a*' on 'aa'"
+        },
+        "predict_strings_to_len4": {
+          "strings": 31,
+          "cases": 20832
+        },
+        "exercise_1_pieces_plus_c": {
+          "patterns": 1484,
+          "cases": 22260,
+          "mismatches": 0
+        },
+        "exercise_2_wasted_search_checks": 1350,
+        "exercise_3_abc_len4": {
+          "strings": 121,
+          "cases": 81312,
+          "mismatches": 0
+        },
+        "listings": {
+          "4-1": "file=code/difftest.py (run, output 10080 cases, 0 mismatches)",
+          "4-2": "run: 672 patterns, 15 strings; 10,080 cases, 0 mismatches",
+          "4-3": "expect-error multiple repeat, tinyre.compile('a+?')",
+          "4-4": "run: injected ? bug, 334 mismatches"
+        },
+        "figures": {
+          "4-1": "Rust regex engine ladder: lazy DFA, one-pass DFA, bounded backtracker, PikeVM"
+        },
+        "sidenotes": [
+          "sn-4-1",
+          "sn-4-2"
+        ],
+        "support_table_rows": 8,
+        "prose_py_word_count": 4707,
+        "prose_only_word_count": 5072
+      }
     }
   },
   "notes": "regenerated 2026-09-05 with the improved skill; scope reused from the approved first edition",

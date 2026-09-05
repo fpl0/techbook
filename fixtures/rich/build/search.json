@@ -28,5 +28,11 @@
 "heading": "What to remember",
 "href": "ch01-shapes.html#what-to-remember",
 "text": "`sum` of an empty sequence is `0`, not an error Errors often surface one step after the operation that caused them Nested lists work too: like this and this"
+},
+{
+"chapter": "Shapes of a Chapter",
+"heading": "Inline regressions",
+"href": "ch01-shapes.html#inline-regressions",
+"text": "A link whose text holds code, [the `re` reference](https://docs.python.org/3/library/re.html), and a table with backslashes (regression: nested placeholders and `\\d`). class `[a-z]`, `\\d` backreference `\\1` pipe `a|b`"
 }
 ]

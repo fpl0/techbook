@@ -10,6 +10,7 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 </script>
 <link rel="stylesheet" href="assets/book.css">
 <link rel="prev" href="ch02-pattern-to-machine.html">
+<link rel="next" href="ch04-making-it-trustworthy.html">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -33,6 +34,8 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <li><a href="#one-opinion-3">One opinion</a></li>
 <li><a href="#going-deeper-3">Going deeper</a></li>
 </ol>
+</li>
+<li><a href="ch04-making-it-trustworthy.html"><span class="chap-num">4</span>Making It Trustworthy</a>
 </li>
 </ol>
 <ol class="extras"><li><a href="glossary.html">Glossary</a></li></ol>
@@ -493,12 +496,13 @@ RecursionError: maximum recursion depth exceeded</pre>
 <ul>
 <li>Cox, <a href="https://swtch.com/~rsc/regexp/regexp1.html" target="_blank" rel="noopener">"Regular Expression Matching Can Be Simple And Fast"</a> (2007), second half. The C simulator this chapter's Python follows, the <code>listid</code> trick, and the section on caching the sets into a DFA, including the note that the cache can be thrown away when it grows too large.</li>
 <li>Cox, <a href="https://swtch.com/~rsc/regexp/regexp2.html" target="_blank" rel="noopener">"Regular Expression Matching: the Virtual Machine Approach"</a> (2009). The Pike VM: threads, saved positions, and why one thread per state is still enough. Read it before adding captures to <code>tinyre</code>.</li>
-<li>Gallant, <a href="https://burntsushi.net/regex-internals/" target="_blank" rel="noopener">"Regex engine internals as a library"</a> (2023). How Rust's <code>regex</code> crate stacks a Pike VM, a bounded backtracker, a one-pass DFA and a lazy DFA behind one interface, and why "only the PikeVM is required".</li>
+<li>Gallant, <a href="https://burntsushi.net/regex-internals/" target="_blank" rel="noopener">"Regex engine internals as a library"</a> (2023). How Rust's <code>regex</code> crate stacks a Pike VM, a bounded backtracker, a one-pass DFA and a DFA built on demand behind one interface, and why "only the PikeVM is required".</li>
 </ul>
 
 <p>On every example in this chapter, <code>tinyre</code> agrees with <code>re</code>. Chapter 4 asks whether it agrees on every pattern of up to four characters, and the first version did not.</p>
 <nav class="chapter-nav" aria-label="Chapter navigation">
 <a class="prev" href="ch02-pattern-to-machine.html"><span class="dir">Previous</span><span class="t">From Pattern to Machine</span></a>
+<a class="next" href="ch04-making-it-trustworthy.html"><span class="dir">Next</span><span class="t">Making It Trustworthy</span></a>
 </nav>
 </main>
 </div>
