@@ -34,9 +34,10 @@ ln -sfn ~/Code/techbook/skill ~/.claude/skills/techbook
 The symlink means edits to the repo take effect immediately. Restart Claude Code, or
 start a new session, for the skill to register.
 
-**Requires:** Python 3.11+ (`verify.py` uses `tomllib`), macOS for the `sandbox-exec`
-sandbox, plus a toolchain for whatever language your book's examples are written in.
-Everything else is standard library — no `pip install`, no build step.
+**Requires:** Python 3.11+ (`verify.py` reads dependency manifests with `tomllib`;
+on 3.10 it says so and stops rather than silently pinning nothing), macOS for the
+`sandbox-exec` sandbox, plus a toolchain for whatever language your book's examples
+are written in. Everything else is standard library — no `pip install`, no build step.
 
 ## Use
 
@@ -185,5 +186,4 @@ Say what you tested against.
 
 ## License
 
-Not yet chosen, which means default copyright applies and nobody else has permission
-to use or redistribute this. Pick one before publishing the repo.
+MIT — see [LICENSE](LICENSE).

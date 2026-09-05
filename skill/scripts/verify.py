@@ -30,6 +30,11 @@ import tempfile
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
+try:                      # stdlib from 3.11; absence is reported, never swallowed
+    import tomllib
+except ImportError:       # pragma: no cover - only on 3.10 and older
+    tomllib = None
+
 # ── The block contract ────────────────────────────────────────────────────────
 
 MODES = {"run", "check", "expect-error", "literal", "norun"}
@@ -279,18 +284,34 @@ def node_builtins() -> set[str]:
         return set()
 
 
+class ManifestError(Exception):
+    """The dependency manifest could not be read. Never swallowed: an unreadable
+    manifest silently pins nothing, which fails every third-party import with a
+    message about the wrong thing."""
+
+
 def pinned_python(book: Path) -> set[str]:
     names: set[str] = set()
     pyproject = book / "verify" / "python" / "pyproject.toml"
-    if pyproject.exists():
-        try:
-            import tomllib
-            data = tomllib.loads(pyproject.read_text())
-            deps = data.get("project", {}).get("dependencies", []) or []
-            for d in deps:
-                names.add(re.split(r"[<>=!~\[; ]", d.strip())[0].replace("-", "_").lower())
-        except Exception:
-            pass
+    if not pyproject.exists():
+        return names
+
+    if tomllib is None:
+        raise ManifestError(
+            f"reading {pyproject.relative_to(book)} needs Python 3.11+ for tomllib, "
+            f"but this is Python {sys.version_info.major}.{sys.version_info.minor}. "
+            f"Without it nothing can be pinned, so every third-party import would "
+            f"fail the dependency gate for the wrong reason. Re-run on 3.11+.")
+    try:
+        data = tomllib.loads(pyproject.read_text())
+    except tomllib.TOMLDecodeError as e:
+        raise ManifestError(f"{pyproject.relative_to(book)} is not valid TOML: {e}") from e
+    except OSError as e:
+        raise ManifestError(f"{pyproject.relative_to(book)} could not be read: {e}") from e
+
+    deps = data.get("project", {}).get("dependencies", []) or []
+    for d in deps:
+        names.add(re.split(r"[<>=!~\[; ]", d.strip())[0].replace("-", "_").lower())
     return names
 
 
@@ -300,8 +321,10 @@ def pinned_node(book: Path) -> set[str]:
         return set()
     try:
         data = json.loads(pkg.read_text())
-    except Exception:
-        return set()
+    except json.JSONDecodeError as e:
+        raise ManifestError(f"{pkg.relative_to(book)} is not valid JSON: {e}") from e
+    except OSError as e:
+        raise ManifestError(f"{pkg.relative_to(book)} could not be read: {e}") from e
     names = set()
     for key in ("dependencies", "devDependencies"):
         names |= set(data.get(key, {}) or {})
@@ -310,8 +333,13 @@ def pinned_node(book: Path) -> set[str]:
 
 def dep_gate(blocks: list[Block], book: Path) -> list[str]:
     errors = []
-    py_ok = python_stdlib() | pinned_python(book)
-    node_ok = node_builtins() | pinned_node(book)
+    try:
+        py_ok = python_stdlib() | pinned_python(book)
+        node_ok = node_builtins() | pinned_node(book)
+    except ManifestError as e:
+        # Report and stop. Continuing with an empty allowlist would blame every
+        # third-party import for a problem that is entirely in the manifest.
+        return [f"dependency manifest: {e}"]
     local_py = {p.stem for p in (book / "code").rglob("*.py")} if (book / "code").exists() else set()
 
     for b in blocks:
