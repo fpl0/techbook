@@ -8,5 +8,8 @@ not_for: Readers wanting a regex syntax tutorial, or a production-grade engine w
 prerequisites: Comfortable Python (functions, recursion, dataclasses, slicing). No compiler or automata theory assumed.
 depth: brief
 language: python
+palette: indigo
+face: charter
+theme_why: An engineering book about machines built from a 1968 paper. Ink blue reads as blueprint and instrument; Charter is a sturdy workhorse face designed for low-resolution printing, which suits a text full of code.
 spine: A regex library `tinyre` grown across the book, first a backtracking matcher, then a parser and compiler to a Thompson NFA, then a simulator that runs in linear time, then a test-suite that checks it against Python's `re`
 non_goals: Unicode handling, capture groups, backreferences, lookaround, POSIX vs Perl semantics, regex flavours beyond the teaching subset (literal, dot, concatenation, star, plus, optional, alternation, parentheses)

@@ -16,10 +16,11 @@
         "Chapter code exists as file=-backed listings under code/ and passed verify.py before the prose was written",
         "Each chapter states a crux before its first listing, owns one labelled opinion, and annotates its further reading",
         "src/front-matter.md and src/cover.svg exist; build/index.html shows a cover with title, byline and a Start reading link",
-        "build/glossary.html exists and every chapter's Terms introduced line uses the term \u2014 definition; form",
+        "build/glossary.html exists and every chapter's Terms introduced line uses the term — definition; form",
         "Listings in build/*.html carry syntax-highlighting spans (pre .k, .s, .c) without any external script or stylesheet",
         "prose.py reports zero ban-list hits and em-dash density under 1 per 1,000 words; continuity.py reports no term used before its chapter",
-        "Every historical or performance claim in the chapters carries a citation whose URL urlcheck.py reports live"
+        "Every historical or performance claim in the chapters carries a citation whose URL urlcheck.py reports live",
+        "book.yaml names a palette and face chosen for the topic, with a one-line theme_why; the rendered build/assets/book.css ends with that theme block"
       ]
     },
     {

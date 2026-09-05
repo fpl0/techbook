@@ -40,7 +40,16 @@ starting over. Say which phase you are resuming into.
    the most expensive mistake available. Ask in one batched round, not serially.
 
    Write `book.yaml` (title, subtitle, audience, prerequisites, depth, spine project,
-   non-goals, language) and `research/brief.md`. **Gate: show the user the brief and
+   non-goals, language) and `research/brief.md`.
+
+   **Choose the book's theme for its topic.** Add `palette:` and `face:` to
+   `book.yaml` with a one-line `theme_why:`. The palettes and faces are listed by
+   `render.py --list-themes` and described in `references/html-spec.md`; every
+   palette already passes contrast, so choose on character, not safety. A book on
+   compilers is not a book on gardening data, and the two should not look the same
+   on the shelf. Do not pick oxblood by default: it is the fallback for a book that
+   never chose. Custom `accent:`, `accent_dark:` or `jacket:` hexes are allowed and
+   are contrast-checked at render; a failing hex stops the build. **Gate: show the user the brief and
    get approval before researching.**
 
 2. **Research.** Decompose the brief into independent sub-topics — one per planned
@@ -223,6 +232,7 @@ starting over. Say which phase you are resuming into.
    Prose      em dash/1k 0.4 · sentence stdev 9.1 · ban-list 0 · craft 2
    Rubric     lowest dimension 4 (voice, ch06)
    Continuity clean
+   Theme      indigo · charter
    Open       ./my-book/build/index.html  (cover, contents, front matter)
               → chNN-*.html, one page per chapter, with previous/next
               → glossary.html

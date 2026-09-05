@@ -80,7 +80,7 @@ my-book/
 
 Code is syntax-highlighted at render time by `highlight.py`, so the colour is in
 the HTML: it survives JavaScript being off, printing, and reading from a folder.
-`book.html` inlines its CSS, JS and search index — zero external requests, so it works
+Each book names a palette and a face in `book.yaml` (`render.py --list-themes`), chosen for its topic and contrast-checked at build, so no two books look the same on the shelf. `book.html` inlines its CSS, JS and search index — zero external requests, so it works
 offline and prints to a usable PDF. No framework, no web fonts, no CDN, and the book
 stays readable with JavaScript disabled. Search works from `file://` because the
 index ships as a script, not something to fetch.

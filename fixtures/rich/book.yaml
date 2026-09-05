@@ -1,2 +1,5 @@
 title: A Rich Fixture
 subtitle: Exercising every construct the chapter template mandates
+palette: forest
+face: georgia
+theme_why: Fixture; exercises a non-default palette and face so the theme path is covered by regression.

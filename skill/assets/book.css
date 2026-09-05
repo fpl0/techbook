@@ -5,6 +5,8 @@
    No framework, no web fonts, no build step, no network at read time.
    Every colour is defined on bare :root first, then overridden for dark, so
    nothing has its only definition inside a media query.
+   render.py appends a per-book theme block (palette, face, jacket from
+   book.yaml) after this file; the values below are the oxblood/iowan defaults.
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
@@ -130,7 +132,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-prose);
-  font-size: clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem);
+  font-size: calc(clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem) * var(--prose-scale, 1));
   line-height: 1.6;
   font-kerning: normal;
   font-variant-numeric: oldstyle-nums;

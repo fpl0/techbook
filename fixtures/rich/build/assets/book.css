@@ -5,6 +5,8 @@
    No framework, no web fonts, no build step, no network at read time.
    Every colour is defined on bare :root first, then overridden for dark, so
    nothing has its only definition inside a media query.
+   render.py appends a per-book theme block (palette, face, jacket from
+   book.yaml) after this file; the values below are the oxblood/iowan defaults.
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
@@ -130,7 +132,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-prose);
-  font-size: clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem);
+  font-size: calc(clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem) * var(--prose-scale, 1));
   line-height: 1.6;
   font-kerning: normal;
   font-variant-numeric: oldstyle-nums;
@@ -1005,4 +1007,28 @@ body.cover-page .masthead .crumb a { color: inherit; }
   .cover-hero .subtitle { font-size: 14pt; color: #333; }
   .cover-hero .byline { color: #333; }
   .book-single .chapter { content-visibility: visible; break-before: page; }
+}
+
+/* ── theme: forest · georgia (from book.yaml; overrides the defaults above) ── */
+:root {
+  --font-prose: Georgia, "Iowan Old Style", Charter, "Times New Roman", serif;
+  --prose-scale: 1;
+  --bg: #f7f9f3;
+  --bg-raised: #edf1e6;
+  --bg-code: #f0f3ea;
+  --bg-output: #e6ebdf;
+  --accent: #2f6b45;
+  --accent-bg: #e3efe5;
+  --tok-k: #2f6b45;
+  --cover-bg: #24503a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151413; --bg-raised: #1e1c1a; --bg-code: #221f1c; --bg-output: #1c1a18;
+    --accent: #9fd3b0; --accent-bg: #22332a; --tok-k: #9fd3b0;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151413; --bg-raised: #1e1c1a; --bg-code: #221f1c; --bg-output: #1c1a18;
+  --accent: #9fd3b0; --accent-bg: #22332a; --tok-k: #9fd3b0;
 }

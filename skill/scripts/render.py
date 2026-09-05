@@ -819,6 +819,113 @@ def single_page(chapters: list[Chapter], book: dict, css: str, js: str,
     return "\n".join(parts)
 
 
+# ── theme: one palette and one face per book, chosen for the topic ───────────
+# Every value below passes WCAG AA (≥ 4.5:1) on every ground it is used against;
+# render.py re-checks at build time so a hand-edited hex cannot ship unreadable.
+
+PALETTES: dict[str, dict[str, str]] = {
+    # name: accent (light), accent_dark, jacket, paper, raised, code, output, accent_bg, accent_bg_dark
+    "oxblood":  dict(accent="#8f3a2b", accent_dark="#e0a48c", jacket="#7a3324", paper="#faf8f2", raised="#f1eee6", code="#f3f1ea", output="#ebe8df", accent_bg="#f4e6e1", accent_bg_dark="#3a2b25"),
+    "indigo":   dict(accent="#3a4796", accent_dark="#aeb8f0", jacket="#2b3570", paper="#f7f8fb", raised="#eef0f6", code="#f0f2f7", output="#e7eaf1", accent_bg="#e6e9f6", accent_bg_dark="#262a45"),
+    "forest":   dict(accent="#2f6b45", accent_dark="#9fd3b0", jacket="#24503a", paper="#f7f9f3", raised="#edf1e6", code="#f0f3ea", output="#e6ebdf", accent_bg="#e3efe5", accent_bg_dark="#22332a"),
+    "ochre":    dict(accent="#8a5d0c", accent_dark="#e3c078", jacket="#6f4b0d", paper="#fbf7ec", raised="#f3ecdb", code="#f5efe0", output="#ede5d1", accent_bg="#f5ead0", accent_bg_dark="#3a3120"),
+    "slate":    dict(accent="#3f5a70", accent_dark="#a9c3d6", jacket="#2e4353", paper="#f6f8f9", raised="#eaeef1", code="#eef1f4", output="#e4e9ec", accent_bg="#e3eaf0", accent_bg_dark="#24303a"),
+    "plum":     dict(accent="#75306f", accent_dark="#d9a8d6", jacket="#5c2657", paper="#faf6f9", raised="#f1eaf0", code="#f4eef3", output="#ebe3ea", accent_bg="#f2e4f1", accent_bg_dark="#38263a"),
+    "teal":     dict(accent="#1f6b6e", accent_dark="#8fd2d4", jacket="#1b5356", paper="#f4f8f8", raised="#e8f0f0", code="#ecf2f2", output="#e1eaea", accent_bg="#dff0ef", accent_bg_dark="#1f3435"),
+    "graphite": dict(accent="#3c3a37", accent_dark="#cfc9bd", jacket="#2a2927", paper="#f8f8f6", raised="#ecece9", code="#efefec", output="#e5e5e1", accent_bg="#e8e6e1", accent_bg_dark="#2c2a27"),
+}
+
+FACES: dict[str, str] = {
+    # system stacks only: no web fonts, so every face degrades to a real serif
+    "iowan":       '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, "Bitstream Charter", Georgia, "Times New Roman", serif',
+    "charter":     'Charter, "Bitstream Charter", "Iowan Old Style", Georgia, "Times New Roman", serif',
+    "georgia":     'Georgia, "Iowan Old Style", Charter, "Times New Roman", serif',
+    "baskerville": 'Baskerville, "Libre Baskerville", "Hoefler Text", Georgia, "Times New Roman", serif',
+    "palatino":    'Palatino, "Palatino Linotype", "Book Antiqua", "Iowan Old Style", Georgia, serif',
+}
+
+# Baskerville and Palatino have a small x-height; nudge them so the measure holds.
+FACE_SIZE: dict[str, str] = {"baskerville": "1.04", "palatino": "1.02"}
+
+INK, DARK_BG, DARK_CODE, COVER_FG, FAINT = "#1f1d1a", "#151413", "#221f1c", "#f7f3ea", "#6b655b"
+
+
+def _lum(h: str) -> float:
+    h = h.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    f = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = _lum(a), _lum(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def check_palette(p: dict[str, str]) -> list[str]:
+    """Every pairing the CSS actually produces, at the AA body-text threshold."""
+    pairs = {
+        "accent on paper": (p["accent"], p["paper"]),
+        "accent on code ground": (p["accent"], p["code"]),
+        "accent on its tint": (p["accent"], p["accent_bg"]),
+        "ink on paper": (INK, p["paper"]),
+        "faint text on output ground": (FAINT, p["output"]),
+        "dark accent on dark ground": (p["accent_dark"], DARK_BG),
+        "dark accent on dark code ground": (p["accent_dark"], DARK_CODE),
+        "dark accent on its tint": (p["accent_dark"], p["accent_bg_dark"]),
+        "cover text on jacket": (COVER_FG, p["jacket"]),
+    }
+    return [f"{name} {contrast(a, b):.2f}:1 (need 4.5)" for name, (a, b) in pairs.items()
+            if contrast(a, b) < 4.5]
+
+
+def theme_css(meta: dict) -> str:
+    """The per-book override block appended to book.css: palette, face, jacket."""
+    name = meta.get("palette", "oxblood")
+    if name not in PALETTES:
+        raise SystemExit(f"error: unknown palette {name!r}; choose one of {', '.join(PALETTES)}")
+    p = dict(PALETTES[name])
+    for key in ("accent", "accent_dark", "jacket"):        # optional hex overrides
+        if meta.get(key):
+            v = meta[key]
+            if not re.fullmatch(r"#[0-9a-fA-F]{6}", v):
+                raise SystemExit(f"error: {key} must be a six-digit hex colour, got {v!r}")
+            p[key] = v.lower()
+    problems = check_palette(p)
+    if problems:
+        raise SystemExit("error: theme fails contrast: " + "; ".join(problems))
+    face = meta.get("face", "iowan")
+    if face not in FACES:
+        raise SystemExit(f"error: unknown face {face!r}; choose one of {', '.join(FACES)}")
+    scale = FACE_SIZE.get(face, "1")
+    return f"""
+/* ── theme: {name} · {face} (from book.yaml; overrides the defaults above) ── */
+:root {{
+  --font-prose: {FACES[face]};
+  --prose-scale: {scale};
+  --bg: {p['paper']};
+  --bg-raised: {p['raised']};
+  --bg-code: {p['code']};
+  --bg-output: {p['output']};
+  --accent: {p['accent']};
+  --accent-bg: {p['accent_bg']};
+  --tok-k: {p['accent']};
+  --cover-bg: {p['jacket']};
+}}
+@media (prefers-color-scheme: dark) {{
+  :root:not([data-theme="light"]) {{
+    --bg: {DARK_BG}; --bg-raised: #1e1c1a; --bg-code: {DARK_CODE}; --bg-output: #1c1a18;
+    --accent: {p['accent_dark']}; --accent-bg: {p['accent_bg_dark']}; --tok-k: {p['accent_dark']};
+  }}
+}}
+:root[data-theme="dark"] {{
+  --bg: {DARK_BG}; --bg-raised: #1e1c1a; --bg-code: {DARK_CODE}; --bg-output: #1c1a18;
+  --accent: {p['accent_dark']}; --accent-bg: {p['accent_bg_dark']}; --tok-k: {p['accent_dark']};
+}}
+"""
+
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def load_book_meta(book: Path) -> dict:
@@ -828,7 +935,8 @@ def load_book_meta(book: Path) -> dict:
         # deliberately tiny: top-level `key: value` only, no dependency
         for line in y.read_text().splitlines():
             m = re.match(r"^([a-z_]+):\s*(.+?)\s*$", line)
-            if m and m.group(1) in ("title", "subtitle", "author", "date", "edition"):
+            if m and m.group(1) in ("title", "subtitle", "author", "date", "edition",
+                                    "palette", "face", "accent", "accent_dark", "jacket"):
                 meta[m.group(1)] = m.group(2).strip().strip("\"'")
     cover = book / "src" / "cover.svg"
     if cover.exists():
@@ -844,8 +952,16 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("book", type=Path)
     ap.add_argument("--out", default="build")
+    ap.add_argument("--list-themes", action="store_true",
+                    help="print the palettes and faces a book.yaml may name, then exit")
     ap.add_argument("--no-single", action="store_true")
     args = ap.parse_args()
+    if args.list_themes:
+        for n, p in PALETTES.items():
+            print(f"palette {n:9} accent {p['accent']} · dark {p['accent_dark']} · jacket {p['jacket']} · paper {p['paper']}")
+        for n, f in FACES.items():
+            print(f"face    {n:9} {f.split(',')[0]}")
+        return 0
 
     book_dir = args.book.expanduser().resolve()
     src = book_dir / "src"
@@ -854,16 +970,16 @@ def main() -> int:
         return 2
 
     assets_src = Path(__file__).parent.parent / "assets"
-    css = (assets_src / "book.css").read_text()
+    meta = load_book_meta(book_dir)
+    css = (assets_src / "book.css").read_text() + theme_css(meta)
     js = (assets_src / "book.js").read_text()
 
     out = book_dir / args.out
     out.mkdir(parents=True, exist_ok=True)
     (out / "assets").mkdir(exist_ok=True)
-    shutil.copy(assets_src / "book.css", out / "assets" / "book.css")
+    (out / "assets" / "book.css").write_text(css)
     shutil.copy(assets_src / "book.js", out / "assets" / "book.js")
 
-    meta = load_book_meta(book_dir)
     global DOMINANT_LANG
     ym = re.search(r"^language:\s*(\S+)", (book_dir / "book.yaml").read_text()
                    if (book_dir / "book.yaml").exists() else "", re.M)

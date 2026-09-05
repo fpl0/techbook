@@ -114,6 +114,40 @@ a spec that disagrees with the stylesheet is a trap for the next editor.
 Only four heading levels are styled. If a chapter needs `h5`, the chapter is
 structured wrong.
 
+## Theme per book
+
+Two books from this skill should not look identical on the shelf. `book.yaml` names
+one palette and one face, chosen at scope time for the topic; `render.py` appends
+the override block to `book.css`, so the values in the table above are the
+oxblood/iowan defaults. Everything else — measure, scale, chrome, code tokens other
+than keywords — stays fixed, because that is what makes it a book from this press.
+
+| Palette | Character | Suits |
+|---|---|---|
+| `oxblood` | warm paper, ink red | the fallback; humanities-flavoured computing, history, essays |
+| `indigo` | cool paper, blueprint blue | compilers, machines, protocols, anything engineered |
+| `forest` | green-tinted paper | data, ecology, growth, simulation, anything organic |
+| `ochre` | cream paper, old gold | mathematics, algorithms with a classical feel, archival topics |
+| `slate` | grey-blue, restrained | operating systems, infrastructure, security, hardware |
+| `plum` | violet-grey | languages, type theory, logic, anything abstract |
+| `teal` | sea green | networking, distributed systems, signals, audio |
+| `graphite` | near-monochrome | a stark text: proofs, reference, minimal-decoration books |
+
+| Face | Character |
+|---|---|
+| `iowan` | the default: open, contemporary, wide |
+| `charter` | sturdy workhorse designed for coarse output; good beside a lot of code |
+| `georgia` | familiar, screen-native, slightly informal |
+| `baskerville` | transitional, elegant; scaled up 4% for its small x-height |
+| `palatino` | calligraphic, humanist; scaled up 2% |
+
+All are system stacks, so no web font is fetched and every face degrades to a real
+serif. Every palette passes WCAG AA on every pairing the CSS produces (accent on
+paper, on the code ground, on its tint; dark accent on the dark grounds; cover text
+on the jacket), and `render.py` re-checks at build time, so a custom `accent:`,
+`accent_dark:` or `jacket:` hex that fails stops the build rather than shipping.
+The keyword token follows the accent so highlighted code belongs to the same book.
+
 ## Accessibility floor
 
 Non-negotiable, and cheap:
