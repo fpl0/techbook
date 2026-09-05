@@ -512,7 +512,8 @@ button.copy[data-copied] { color: var(--ok); opacity: 1; }
 /* line numbers in the gutter, generated so they never copy with the code */
 pre code.numbered { counter-reset: line; display: block; }
 pre code.numbered .line {
-  display: block;
+  display: inline-block;             /* not block: the newline after it is the line break */
+  width: 100%;
   counter-increment: line;
   white-space: pre-wrap;              /* a long line wraps under the code, not the gutter */
   overflow-wrap: anywhere;
