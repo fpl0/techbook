@@ -54,7 +54,7 @@ class Chapter:
 def load(book: Path) -> list[Chapter]:
     chapters = []
     for path in sorted((book / "src").glob("*.md")):
-        if path.stem == "SUMMARY" or path.name.endswith(".corrected"):
+        if path.stem in ("SUMMARY", "front-matter") or path.name.endswith(".corrected"):
             continue
         raw = path.read_text(encoding="utf-8")
         nm = re.match(r"^ch(\d+)", path.stem)
@@ -81,9 +81,13 @@ def load(book: Path) -> list[Chapter]:
         terms: list[str] = []
         m = TERMS_LINE.search(raw)
         if m:
-            chunk = TAGS.sub(" ", m.group(1)).split("**")[0]
-            for t in re.split(r",|;", chunk):
-                t = t.strip().strip(".").strip()
+            chunk = TAGS.sub(" ", m.group(1)).split("**")[0].split("\n\n")[0]
+            entries = re.split(r";", chunk) if ";" in chunk else re.split(r",", chunk)
+            for t in entries:
+                # "term — definition" keeps only the term; the definition feeds
+                # the glossary that render.py builds.
+                t = re.split(r"\s+(?:—|–|--|:)\s+", t.strip(), maxsplit=1)[0]
+                t = t.strip().strip(".").strip("*").strip()
                 t = re.sub(r"^and\s+", "", t, flags=re.I)
                 if t and len(t) > 2 and t.lower() not in STOP:
                     terms.append(t)

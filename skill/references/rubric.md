@@ -9,6 +9,15 @@ anywhere means another pass; a 2 means the chapter needs restructuring, not edit
 Score honestly. A rubric everything passes measures nothing, and the point of a
 number is that it can go down.
 
+**Score per section, then roll up.** Model judges are measured to be unstable on
+long outputs, and rubrics help only when the judged unit is small enough to hold
+in view. So read the chapter's outline contract, then score each `##` section
+against dimensions 2–6 before you score the chapter. The chapter's score on a
+dimension is its *worst* section, not its average: a reader does not average.
+Look hardest at the middle of the chapter and the middle of the book. Consistency
+errors in long generated text cluster there, at the point furthest from both the
+outline and the ending.
+
 ## The dimensions
 
 ### 1. Does the chapter do its stated job?

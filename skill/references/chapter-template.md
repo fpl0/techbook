@@ -16,20 +16,24 @@ writer who doesn't will write a quiz.
 ## The shape
 
 ```text
+0.  EPIGRAPH (optional)  One quotation that earns its place. Attributed.
 1.  HOOK                 A concrete broken thing, or a real question. 1-2 paragraphs.
 2.  ORIENTATION BOX      What you'll learn · Assumes you know · time · exercise count
 3.  WARM-UP              2-3 retrieval questions reaching back 1-3 chapters
-4.  SECTIONS (3-7)       concept -> worked example -> predict checkpoint -> variation
-5.  MISCONCEPTIONS       Inline, where they bite. Wrong code + its real error.
-6.  PRACTICE             A faded ladder of 3-4 exercises, solutions in <details>
-7.  MAKE                 One build that advances the spine project
-8.  MENTAL MODEL         A diagram, a 5-8 bullet recap, the terms introduced
-9.  GOING DEEPER         Clearly optional. Papers, source, specs.
-10. NEXT                 One sentence of forward tension.
+4.  THE CRUX             The problem this chapter solves, stated before any solution
+5.  SECTIONS (3-7)       concept -> worked example -> predict checkpoint -> variation
+6.  MISCONCEPTIONS       Inline, where they bite. Wrong code + its real error.
+7.  PRACTICE             A faded ladder of 3-4 exercises, solutions in <details>
+8.  MAKE                 One build that advances the spine project
+9.  MENTAL MODEL         A diagram, a 5-8 bullet recap, the terms introduced
+10. ONE OPINION          A short, owned, first-person judgement, labelled as such
+11. GOING DEEPER         Clearly optional. Annotated: one sentence per source.
+12. NEXT                 One sentence of forward tension.
 ```
 
-Parts 3, 7 and 9 are droppable for a `brief`-depth book. Parts 1, 2, 4, 6 and 8 are
-not droppable at any depth.
+Parts 0, 3, 8 and 10 are droppable for a `brief`-depth book. Parts 1, 2, 4, 5, 7, 9
+and 11 are not droppable at any depth. Read `exemplars.md` for where each part
+comes from and why the best books have it.
 
 ## Part by part
 
@@ -58,14 +62,26 @@ This is retrieval practice and interleaving, and it is the cheapest real learnin
 gain available in a book. It is not a summary of the previous chapter — a question
 the reader has to *answer* does the work; a recap they can read passively does not.
 
-### 4. Sections
+### 4. The crux
 
-Three to seven per chapter. Each one runs:
+One bordered box, before the first listing that attacks the problem, stating the
+most important issue in the chapter as a *problem*: "How can a matcher explore every
+alternative without ever revisiting a state?" OSTEP calls this the crux of the
+problem and states it before solving it, because a reader who knows what the
+difficulty is can judge whether the solution addresses it. A crux stated after the
+solution is a summary.
+
+### 5. Sections
+
+Three to seven per chapter, one idea each. Each one runs:
 
 **a. Concept in prose.** Under ~500 words before the first line of code. Concrete
 example first, abstraction named afterwards.
 
-**b. A complete worked example.** Runnable, `run`-tagged, with real captured output.
+**b. A complete worked example.** Runnable, `run`-tagged, `file=`-backed, with real
+captured output. The sentence before it says what to look for; the paragraph after
+it says why it is built that way, never what it does. A listing that edits a file
+the reader already has says where the edit goes. Refer to listings by number.
 Complete is the operative word: novices learn more from studying a full solution than
 from being asked to produce a partial one. Annotate it with numbered markers keyed to
 a list underneath, so the explanation sits *with* the code rather than three
@@ -82,7 +98,7 @@ chunks; an experienced reader chunks a 30-line function into three ideas, a lear
 reads thirty lines. Grow listings incrementally across a section rather than
 presenting the finished thing.
 
-### 5. Misconception callouts
+### 6. Misconception callouts
 
 Place them where the mistake actually happens, not in a lump at the end. Each shows
 the wrong code, **its real error output** (an `expect-error` block, so the error is
@@ -91,7 +107,7 @@ genuine and stays genuine), and the diagnosis.
 Showing real compiler and interpreter errors is one of the strongest teaching devices
 available, because it trains the reader to read the error rather than fear it.
 
-### 6. Practice — a faded ladder
+### 7. Practice — a faded ladder
 
 Four exercises, each less scaffolded than the last:
 
@@ -104,23 +120,46 @@ Exercise stubs are `literal why="exercise stub"` — they are deliberately incom
 and must not be executed. Solutions go in `<details>`, and a solution gives the
 **reasoning**, not just the code.
 
-### 7. Make
+### 8. Make
 
 One 30–60 minute build that advances the book's spine project. This is what turns a
 sequence of chapters into a book: the reader finishes holding something they built.
 
-### 8. Mental model
+### 9. Mental model
 
 A diagram, a 5–8 bullet recap, and the terms introduced in this chapter. The recap
 states *what is true*, not what the chapter did. "`sum` of an empty sequence is 0" —
 never "we learned about the sum function".
 
-### 9. Going deeper
+The terms line has a fixed shape, because two scripts read it:
+
+```text
+**Terms introduced:** NFA — a machine that may occupy several states at once;
+split state — a state with two outgoing arrows and no input;
+epsilon closure — every state reachable without consuming a character.
+```
+
+Entries are separated by semicolons; term and definition by a spaced em dash.
+`continuity.py` checks that no chapter uses a term before the chapter that lists
+it, and `render.py` builds the glossary page from the definitions. A term listed
+without a definition renders as "defined in the chapter", which is a defect.
+
+### 10. One opinion
+
+Fluent Python calls it the Soapbox; Crafting Interpreters the Design Note. A short
+section where the author says what they actually think: which trade-off they would
+make, what they consider overrated, where the field is wrong. First person, and
+labelled so the reader knows it is opinion. A book with no opinions is not trusted
+on its facts either.
+
+### 11. Going deeper
 
 Papers, specifications, source code. Explicitly optional and visibly skippable, so
-an expert can follow it and a beginner can ignore it without anxiety.
+an expert can follow it and a beginner can ignore it without anxiety. **Annotated:**
+each entry gets one sentence on what it adds and who should read it. A bare list of
+titles is a place to get lost.
 
-### 10. Next
+### 12. Next
 
 One sentence that creates a reason to continue. A question the next chapter answers.
 
@@ -145,9 +184,10 @@ Worth knowing, because they tell you when to break the template.
 
 Do not skip these; they are what makes a set of chapters a book.
 
-- **Front matter:** who this is for, **who it is not for**, how to read it, prerequisites, and the typographic conventions used.
+- **Cover.** `render.py` builds one from `book.yaml` (title, subtitle, author, date, edition). Put a `src/cover.svg` beside the chapters, drawn with the kit in `svg-kit.md`, and it becomes the cover art; without one the cover is typographic. Either is a cover; a bare contents list is not.
+- **Front matter** in `src/front-matter.md`: who this is for, **who it is not for**, how to read it, prerequisites, what the listing tags mean, and the typographic conventions used. It renders on the cover page and at the top of the single file. It is not a chapter and carries no number.
 - **A spine project** carried across chapters. The single highest-value structural decision available.
-- **Glossary** of every term introduced, linked from first use.
+- **Glossary**, built by `render.py` from every chapter's terms line. You do not write it; you write the terms lines properly.
 - **A closing chapter** that says honestly what the book did not cover and where to go next.
 
 ## Budgets
@@ -177,10 +217,30 @@ Emit these classes; `book.css` styles them.
   <p class="meta">~35 min · 4 exercises</p>
 </div>
 
+<div class="crux">
+  <div class="title">The crux</div>
+  <p>How can … without …?</p>
+</div>
+
 <div class="callout">
   <div class="title">This trips people up</div>
   <p>…</p>
 </div>
+
+<div class="tip">
+  <div class="title">Tip</div>
+  <p>A general lesson that transfers to systems the reader will build.</p>
+</div>
+
+<div class="aside">
+  <div class="title">Aside</div>
+  <p>Relevant, not essential. History, a related system, a curiosity.</p>
+</div>
+
+<blockquote class="epigraph">
+  <p>Quotation.</p>
+  <span class="who">Who, where, year</span>
+</blockquote>
 
 <details>
   <summary>Predict: what does this print?</summary>

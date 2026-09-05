@@ -65,19 +65,25 @@ Books default to `standard` depth (6–8 chapters, ~25k words). Say "short" or
 ```
 my-book/
 ├── src/ch01-*.md        chapter sources, the durable artifact
+├── src/front-matter.md  who it is for, who it is not for, how to read it
+├── src/cover.svg        cover art, drawn with the skill's diagram kit
 ├── src/SUMMARY.md       mdBook-shaped, so adopting a toolchain later is one command
-├── code/                every listing as a real file
+├── code/                every listing as a real file, importable by later listings
 ├── verify/python/       a real project with a real manifest
 └── build/
-    ├── index.html       cover and contents
+    ├── index.html       cover, contents, front matter
     ├── chNN-*.html      one page per chapter
-    ├── book.html        every chapter in one self-contained file
-    └── search.json
+    ├── glossary.html    built from every chapter's "Terms introduced" line
+    ├── book.html        cover, chapters and glossary in one self-contained file
+    └── assets/          book.css, book.js, search.js
 ```
 
+Code is syntax-highlighted at render time by `highlight.py`, so the colour is in
+the HTML: it survives JavaScript being off, printing, and reading from a folder.
 `book.html` inlines its CSS, JS and search index — zero external requests, so it works
 offline and prints to a usable PDF. No framework, no web fonts, no CDN, and the book
-stays readable with JavaScript disabled.
+stays readable with JavaScript disabled. Search works from `file://` because the
+index ships as a script, not something to fetch.
 
 ## The scripts
 
@@ -92,7 +98,8 @@ The skill drives these, but they work standalone on any book directory.
 | `verify.py <book> --sync-code` | write each `file=` listing out to the path it names |
 | `prose.py <book>` | ban-list, craft checks, em-dash density, sentence rhythm |
 | `continuity.py <book>` | terms used before introduction, cross-chapter numbers, dangling refs |
-| `render.py <book>` | Markdown → HTML |
+| `render.py <book>` | Markdown → cover, chapter pages, glossary, single file; highlights code |
+| `highlight.py <file> <lang>` | the render-time highlighter, usable on its own |
 | `urlcheck.py <book>` | citation liveness, Wayback-backed |
 
 ### The block contract
@@ -172,7 +179,7 @@ demo/             a real book built with the skill
 ```
 
 `fixtures/bad` deliberately contains one of every contract violation; running
-`verify.py` against it should exit 2 with seven lint errors.
+`verify.py` against it should exit 2 with eight lint errors.
 
 ## Contributing
 

@@ -50,7 +50,15 @@ def collect(book: Path) -> dict[str, list[str]]:
                 text = path.read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
                 continue
+            inside = False
             for n, line in enumerate(text.splitlines(), 1):
+                # A URL inside a listing (http://localhost:8080) is code, not a
+                # citation, and must not be reported as fabricated.
+                if path.suffix.lower() == ".md" and re.match(r"^\s{0,3}(```|~~~)", line):
+                    inside = not inside
+                    continue
+                if inside:
+                    continue
                 for m in URL_RE.finditer(line):
                     url = m.group(0).rstrip(TRAILING)
                     found.setdefault(url, []).append(f"{path.relative_to(book)}:{n}")

@@ -3,13 +3,13 @@
 "chapter": "Shapes of a Chapter",
 "heading": "(intro)",
 "href": "ch01-shapes.html",
-"text": "<span class=\"newthought\">Every chapter</span> opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program. What you'll learn Read a fenced block's contract and know whether its output was verified Tell a sidenote from a callout, and know when each earns its place Predict what a snippet prints before running it Assumes you know Basic Python syntax. Nothing else. ~20 min \u00b7 4 exercises"
+"text": " Every chapter opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program. What you'll learn Read a fenced block's contract and know whether its output was verified Tell a sidenote from a callout, and know when each earns its place Predict what a snippet prints before running it Assumes you know Basic Python syntax. Nothing else. ~20 min \u00b7 4 exercises"
 },
 {
 "chapter": "Shapes of a Chapter",
 "heading": "The problem",
 "href": "ch01-shapes.html#the-problem",
-"text": "Here is a function that looks right and is wrong.<label for=\"sn-1\" class=\"margin-toggle sidenote-number\"></label> <input type=\"checkbox\" id=\"sn-1\" class=\"margin-toggle\"> <span class=\"sidenote\">The bug is subtle enough that it survived code review twice in the original codebase this is drawn from.</span> def average(values): total = sum(values) return total / len(values) print(average([1, 2, 3, 4])) That works. Now watch what happens on the empty list. def average(values): return sum(values) / len(values) average([]) This trips people up An empty sequence is not an error in sum \u2014 it returns 0 quite happily. The failure surfaces one operation later, in the division, which is why the traceback points somewhere the reader did not expect. Predict: what does average([2]) return \u2014 2 or 2.0 ? 2.0 . True division always produces a float in Python 3, even when the operands divide evenly. This matters the moment you compare the result to an integer with is rather than == ."
+"text": "Here is a function that looks right and is wrong. The bug is subtle enough that it survived code review twice in the original codebase this is drawn from. def average(values): total = sum(values) return total / len(values) print(average([1, 2, 3, 4])) That works. Now watch what happens on the empty list. def average(values): return sum(values) / len(values) average([]) This trips people up An empty sequence is not an error in sum \u2014 it returns 0 quite happily. The failure surfaces one operation later, in the division, which is why the traceback points somewhere the reader did not expect. Predict: what does average([2]) return \u2014 2 or 2.0 ? 2.0 . True division always produces a float in Python 3, even when the operands divide evenly. This matters the moment you compare the result to an integer with is rather than == ."
 },
 {
 "chapter": "Shapes of a Chapter",

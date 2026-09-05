@@ -30,8 +30,8 @@ your cautionary example silently start working. `expect-error` keeps that guaran
 
 | Modifier | Meaning |
 |---|---|
-| `env=NAME` | share a session with every other `run` block having the same `env` in the same chapter, in document order |
-| `file=path` | the path shown in the listing's header bar, and where the code lives under `code/` |
+| `env=NAME` | share a session with every earlier `run` block having the same `env`, across the whole book in chapter order (python, node and bash only) |
+| `file=path` | the listing **is** that file: `verify.py` requires `code/…` to exist and match the block exactly (`--sync-code` writes it). `code/` is on the import path when blocks run, so a later listing can `import` an earlier file the way a reader's copy would |
 | `caption="…"` | the listing caption, rendered under the code |
 | `highlight=3,7-9` | lines to emphasise |
 | `expect="…"` | for `expect-error`: substring that must appear in stderr |

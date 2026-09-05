@@ -182,21 +182,24 @@ def parse_chapter(path: Path) -> tuple[list[Block], list[str]]:
         lang_l = lang.lower()
 
         if lang_l == "output":
-            # attach to the most recent runnable block
+            # Attach to the block immediately above: only blank lines may sit
+            # between them. render.py uses the same rule, so what verify.py
+            # checks is exactly what the reader sees paired on the page.
             attached = False
-            for b in reversed(blocks):
-                if b.mode in ("run", "expect-error"):
+            if blocks and blocks[-1].mode in ("run", "expect-error"):
+                b = blocks[-1]
+                gap = lines[b.end_line:start]
+                if all(not ln.strip() for ln in gap):
                     if b.expected is not None:
                         errors.append(
                             f"{stem}:{start+1}: second ```output block for the block at line {b.line}")
                     b.expected = body
                     b.expected_span = (start + 1, j + 1)
                     attached = True
-                    break
             if not attached:
                 errors.append(
-                    f"{stem}:{start+1}: ```output block does not follow a `run` or "
-                    f"`expect-error` block")
+                    f"{stem}:{start+1}: ```output block must immediately follow a `run` or "
+                    f"`expect-error` block (blank lines only in between)")
             i = j + 1
             continue
 
@@ -244,6 +247,16 @@ def parse_chapter(path: Path) -> tuple[list[Block], list[str]]:
             errors.append(
                 f"{stem}:{start+1}: mode `{mode}` on unsupported language `{lang}`. "
                 f"Supported: {', '.join(sorted(set(RUNNABLE_LANGS)))}")
+
+        if "timeout" in tags and not (isinstance(tags["timeout"], str) and tags["timeout"].isdigit()):
+            errors.append(
+                f"{stem}:{start+1}: timeout must be a number of seconds, e.g. timeout=30")
+
+        if "env" in tags and lang_l in RUNNABLE_LANGS and \
+                RUNNABLE_LANGS.get(lang_l) not in SENTINEL_EMIT:
+            errors.append(
+                f"{stem}:{start+1}: env= is only supported for "
+                f"{', '.join(sorted(SENTINEL_EMIT))} listings; `{lang}` blocks run in isolation")
 
         nondet = tags.get("nondet")
         if nondet not in (None, "output", "command"):
@@ -438,6 +451,8 @@ SENTINEL_EMIT = {
     "bash": f'\necho "{SENTINEL}"\n',
 }
 
+SANDBOX_AVAILABLE = bool(shutil.which("sandbox-exec"))
+
 SEATBELT = """(version 1)
 (deny default)
 (allow process-exec process-fork signal)
@@ -508,14 +523,24 @@ def run_block(block: Block, all_blocks: list[Block], book: Path,
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"{key}.json"
 
+    data = None
     if use_cache and cache_file.exists():
-        data = json.loads(cache_file.read_text())
-        block.actual, block.stderr, block.exit_code = data["out"], data["err"], data["code"]
-        block.cached = True
-    else:
+        try:
+            data = json.loads(cache_file.read_text())
+            block.actual, block.stderr, block.exit_code = data["out"], data["err"], data["code"]
+            block.cached = True
+        except (ValueError, KeyError, TypeError):
+            data = None                      # corrupt entry: fall through and re-run
+    if data is None:
         out, err, code = execute(block, prefix, book)
         block.actual, block.stderr, block.exit_code = out, err, code
-        cache_file.write_text(json.dumps({"out": out, "err": err, "code": code}))
+        # Environmental failures are not results. Caching a missing toolchain or a
+        # timeout would make installing the toolchain look like it changed nothing.
+        environmental = code in (124, 127) or ("denied" in err.lower() and "sandbox" in err.lower())
+        if not environmental:
+            tmp = cache_file.with_suffix(".tmp")
+            tmp.write_text(json.dumps({"out": out, "err": err, "code": code}))
+            os.replace(tmp, cache_file)
 
     judge(block)
 
@@ -551,7 +576,7 @@ def execute(block: Block, prefix: str, book: Path) -> tuple[str, str, int]:
             f.write_text(body)
             binp = tmp / "snippet"
             comp = sandboxed(["rustc", "--edition", "2021", "-o", str(binp), str(f)],
-                             block, tmp, timeout)
+                             block, tmp, timeout, book)
             if comp[2] != 0 or block.mode == "check":
                 return comp
             cmd = [str(binp)]
@@ -562,7 +587,7 @@ def execute(block: Block, prefix: str, book: Path) -> tuple[str, str, int]:
         else:
             return "", f"no runner for language `{block.lang}`", 127
 
-        return sandboxed(cmd, block, tmp, timeout)
+        return sandboxed(cmd, block, tmp, timeout, book)
 
 
 def python_interpreter(book: Path) -> Path:
@@ -573,18 +598,33 @@ def python_interpreter(book: Path) -> Path:
     return venv if venv.exists() else Path(sys.executable)
 
 
-def sandboxed(cmd: list[str], block: Block, cwd: Path, timeout: int) -> tuple[str, str, int]:
+def sandboxed(cmd: list[str], block: Block, cwd: Path, timeout: int,
+              book: Path | None = None) -> tuple[str, str, int]:
     allow_net = bool(block.tags.get("net"))
     profile = build_profile(cwd, allow_net)
     prof_file = cwd / "profile.sb"
     prof_file.write_text(profile)
 
     full = cmd
-    if shutil.which("sandbox-exec"):
+    if SANDBOX_AVAILABLE:
         full = ["sandbox-exec", "-f", str(prof_file)] + cmd
 
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", NO_COLOR="1",
-               TERM="dumb", HOME=str(cwd), TMPDIR=str(cwd))
+    # A minimal environment. Generated code is untrusted, and the parent shell
+    # commonly holds API keys and cloud credentials; with one `net`-tagged block
+    # those are an exfiltration path. Pass through only what toolchains need.
+    keep = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "SHELL", "USER",
+            "CARGO_HOME", "RUSTUP_HOME", "GOPATH", "GOROOT", "GOCACHE", "GOMODCACHE",
+            "GOFLAGS", "NVM_DIR", "NODE_PATH", "VIRTUAL_ENV", "PYTHONPATH",
+            "JAVA_HOME", "SDKMAN_DIR", "MISE_DATA_DIR", "XDG_CACHE_HOME")
+    env = {k: os.environ[k] for k in keep if k in os.environ}
+    env.update(PYTHONDONTWRITEBYTECODE="1", NO_COLOR="1", TERM="dumb",
+               HOME=str(cwd), TMPDIR=str(cwd), PYTHONIOENCODING="utf-8")
+    # `file=`-backed listings live under code/ as real modules, so a later
+    # listing can `import` an earlier one the way a reader's copy would.
+    code_dir = (book / "code") if book else None
+    if code_dir and code_dir.is_dir():
+        env["PYTHONPATH"] = str(code_dir) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        env["NODE_PATH"] = str(code_dir) + (os.pathsep + env["NODE_PATH"] if env.get("NODE_PATH") else "")
     try:
         p = subprocess.run(full, capture_output=True, text=True,
                            timeout=timeout, cwd=cwd, env=env)
@@ -603,7 +643,10 @@ def judge(block: Block) -> None:
     block.actual = out
 
     denied = "sandbox" in block.stderr.lower() and "denied" in block.stderr.lower()
-    if denied or (block.exit_code == 1 and "Operation not permitted" in block.stderr):
+    # An expect-error block may legitimately demonstrate a PermissionError; only
+    # the sandbox's own wording counts there.
+    if denied or (block.mode != "expect-error" and block.exit_code == 1
+                  and "Operation not permitted" in block.stderr):
         block.status = "sandbox-denied"
         block.note = ("blocked by the sandbox. If the example genuinely needs the network, "
                       "tag it `net`; do not loosen the global profile.")
@@ -703,6 +746,13 @@ def promote(book: Path) -> int:
     n = 0
     for c in sorted((book / "src").glob("*.md.corrected")):
         target = c.with_suffix("")          # strip .corrected -> .md
+        if target.exists() and target.stat().st_mtime > c.stat().st_mtime:
+            # The chapter was edited after this correction was written. Moving it
+            # would silently revert those edits. Re-run verify to regenerate it.
+            print(f"  SKIPPED {c.name}: {target.name} was modified after the correction "
+                  f"was written; re-run verify.py to refresh it, then promote")
+            c.unlink()
+            continue
         shutil.move(str(c), str(target))
         print(f"  promoted {target.name}")
         n += 1
@@ -726,6 +776,8 @@ def print_report(book: Path, blocks: list[Block], corrected: dict, strict: bool)
     today = subprocess.run(["date", "+%F"], capture_output=True, text=True).stdout.strip()
     print(f"\nBook verification · {today}")
     print("─" * 62)
+    if not SANDBOX_AVAILABLE:
+        print("  WARNING: sandbox-exec not found; blocks ran UNSANDBOXED with network access")
     print(f"Blocks {len(blocks):>5} total   ({cached} from cache)")
     for status in ("pass", "skipped", "unverified", "drift", "fail",
                    "sandbox-denied", "toolchain-missing"):
@@ -769,6 +821,7 @@ def print_report(book: Path, blocks: list[Block], corrected: dict, strict: bool)
     (book / ".verify").mkdir(exist_ok=True)
     (book / ".verify" / "report.json").write_text(json.dumps({
         "counts": counts,
+        "sandboxed": SANDBOX_AVAILABLE,
         "blocks": [{k: v for k, v in asdict(b).items() if k != "path"} for b in blocks],
         "corrected": corrected,
     }, indent=2, default=str))
@@ -832,18 +885,22 @@ def main() -> int:
 
     chapters = sorted(p for p in src.glob("*.md")
                       if not p.name.endswith(".corrected.md") and p.stem != "SUMMARY")
-    if args.only:
-        chapters = [p for p in chapters if args.only in p.stem]
     if not chapters:
-        print(f"error: no chapters matched in {src}", file=sys.stderr)
+        print(f"error: no chapters in {src}", file=sys.stderr)
         return 3
 
+    # Every chapter is parsed even under --only, because an env= session may
+    # begin in an earlier chapter and the prefix has to be complete.
     all_blocks: list[Block] = []
     lint: list[str] = []
     for ch in chapters:
         blocks, errs = parse_chapter(ch)
         all_blocks.extend(blocks)
         lint.extend(errs)
+    selected = [b for b in all_blocks if not args.only or args.only in b.chapter]
+    if args.only and not selected:
+        print(f"error: no chapters matched {args.only!r} in {src}", file=sys.stderr)
+        return 3
 
     lint.extend(dep_gate(all_blocks, book))
     lint.extend(code_file_gate(all_blocks, book, args.sync_code))
@@ -857,11 +914,14 @@ def main() -> int:
         return 2
 
     setup(book)
-    for b in all_blocks:
+    if not SANDBOX_AVAILABLE:
+        print("WARNING: sandbox-exec not found on this machine. Blocks will run with no\n"
+              "         filesystem or network confinement. Read the code before trusting this.\n")
+    for b in selected:
         run_block(b, all_blocks, book, use_cache=not args.no_cache)
 
-    corrected = write_corrections(book, all_blocks)
-    return print_report(book, all_blocks, corrected, args.strict)
+    corrected = write_corrections(book, selected)
+    return print_report(book, selected, corrected, args.strict)
 
 
 if __name__ == "__main__":

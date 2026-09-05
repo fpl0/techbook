@@ -29,6 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from verify import parse_info, FENCE_RE, MODES, RUNNABLE_LANGS  # noqa: E402
+from highlight import highlight  # noqa: E402
 
 
 # ── inline ────────────────────────────────────────────────────────────────────
@@ -161,9 +162,12 @@ def render_listing(lang: str, mode: str, tags: dict, body: str,
     bar.append('<button class="copy" type="button">Copy</button>')
     bar.append("</figcaption>")
 
-    # line highlighting
+    # Syntax highlighting happens here, at render time, so the spans are in the
+    # HTML: no JS, no CDN, and print and the single-file build get it too.
+    # highlight() guarantees no span crosses a newline, so the line-emphasis
+    # wrapping below is safe.
+    lines = highlight(body, lang).split("\n")
     hl = tags.get("highlight")
-    lines = body.split("\n")
     if isinstance(hl, str):
         wanted: set[int] = set()
         for part in hl.split(","):
@@ -179,11 +183,10 @@ def render_listing(lang: str, mode: str, tags: dict, body: str,
                 except ValueError:
                     pass
         rendered = "\n".join(
-            (f'<span class="hl-line">{html.escape(ln)}</span>' if i + 1 in wanted
-             else html.escape(ln))
+            (f'<span class="hl-line">{ln}</span>' if i + 1 in wanted else ln)
             for i, ln in enumerate(lines))
     else:
-        rendered = html.escape(body)
+        rendered = "\n".join(lines)
 
     lang_class = f' class="language-{html.escape(lang)}"' if lang else ""
     out = [f'<figure class="listing" id="listing-{number}">' if number
@@ -245,7 +248,7 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
                 sections.append({
                     "heading": cur_section["heading"] or "(intro)",
                     "slug": cur_section["slug"],
-                    "text": re.sub(r"\s+", " ", txt)[:1200],
+                    "text": re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", txt))[:1200],
                 })
         cur_section["heading"], cur_section["slug"], cur_section["text"] = "", "", []
 
@@ -360,7 +363,12 @@ def render_markdown(md: str, chapter_stem: str, chapter_no: int | None,
             headings.append(Heading(level, text, slug))
             anchor = (f'<a class="anchor" href="#{slug}" aria-label="Link to this section">'
                       f"#</a>") if level >= 2 else ""
-            out.append(f'<h{level} id="{slug}">{inline(text)}{anchor}</h{level}>')
+            shown = text
+            if level == 1 and chapter_no is not None:
+                # The page carries a "Chapter N" label above the title, so the
+                # title itself should not repeat it.
+                shown = re.sub(r"^Chapter\s+\d+[:.]?\s*", "", text).strip() or text
+            out.append(f'<h{level} id="{slug}">{inline(shown)}{anchor}</h{level}>')
             i += 1
             continue
 
@@ -503,6 +511,30 @@ def render_list(block: list[str], stem: str, seen: dict) -> str:
     return "\n".join(out)
 
 
+# ── glossary ──────────────────────────────────────────────────────────────────
+
+TERMS_LINE = re.compile(r"\*\*Terms introduced:?\*\*\s*(.+)", re.I | re.S)
+
+
+def collect_terms(md: str) -> list[tuple[str, str]]:
+    """Parse `**Terms introduced:** term — definition; term — definition`."""
+    m = TERMS_LINE.search(md)
+    if not m:
+        return []
+    chunk = re.sub(r"<[^>]+>", " ", m.group(1)).split("**")[0]
+    chunk = chunk.split("\n\n")[0]
+    entries = chunk.split(";") if ";" in chunk else chunk.split(",")
+    out = []
+    for e in entries:
+        parts = re.split(r"\s+(?:—|–|--|:)\s+", e.strip(), maxsplit=1)
+        term = parts[0].strip().strip(".").strip("*").strip()
+        term = re.sub(r"^and\s+", "", term, flags=re.I)
+        definition = parts[1].strip().rstrip(".") if len(parts) > 1 else ""
+        if term and len(term) > 2:
+            out.append((term, definition))
+    return out
+
+
 # ── page assembly ─────────────────────────────────────────────────────────────
 
 def head(title: str, book_title: str, css: str, inline_assets: bool,
@@ -526,12 +558,17 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <a class="skip" href="#main">Skip to content</a>"""
 
 
-def masthead(book_title: str, crumb: str, home: str = "index.html") -> str:
+def masthead(book_title: str, crumb: str, toc: str = "", home: str = "index.html") -> str:
+    """The running head: book title, chapter title, and three quiet controls.
+    The contents live in a <details> drawer so they work with JavaScript off."""
+    drawer = (f'<details class="contents-drawer"><summary>Contents</summary>{toc}</details>'
+              if toc else "")
     return f"""<header class="masthead">
-  <span class="crumb"><a href="{home}">{html.escape(book_title)}</a> &nbsp;›&nbsp; {html.escape(crumb)}</span>
+  <span class="crumb"><a class="book" href="{home}">{html.escape(book_title)}</a><span class="sep"> &nbsp;·&nbsp; </span>{html.escape(crumb)}</span>
   <span class="spacer"></span>
+  {drawer}
   <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button">Auto</button>
+  <button id="theme-toggle" type="button" aria-label="Theme">Auto</button>
 </header>
 <div id="progress"></div>"""
 
@@ -543,7 +580,7 @@ SEARCH_DIALOG = """<dialog id="search" aria-label="Search the book">
 
 
 def toc_html(chapters: list[Chapter], current: str | None,
-             single: bool = False) -> str:
+             single: bool = False, glossary: bool = False) -> str:
     out = ['<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>']
     for ch in chapters:
         href = f"#{ch.stem}" if single else f"{ch.stem}.html"
@@ -559,7 +596,12 @@ def toc_html(chapters: list[Chapter], current: str | None,
                     out.append(f'<li><a href="#{h.slug}">{html.escape(h.text)}</a></li>')
                 out.append("</ol>")
         out.append("</li>")
-    out.append("</ol></nav>")
+    out.append("</ol>")
+    if glossary:
+        href = "#glossary" if single else "glossary.html"
+        cur = ' aria-current="page"' if current == "glossary" else ""
+        out.append(f'<ol class="extras"><li><a href="{href}"{cur}>Glossary</a></li></ol>')
+    out.append("</nav>")
     return "\n".join(out)
 
 
@@ -588,18 +630,50 @@ def chapter_page(ch: Chapter, chapters: list[Chapter], book: dict,
 
     return "\n".join([
         head(ch.title, book["title"], css, False, "\n".join(rel)),
-        masthead(book["title"], ch.title),
+        masthead(book["title"], ch.title,
+                 toc_html(chapters, ch.stem, glossary=bool(book.get("glossary")))),
         '<div class="shell">',
-        toc_html(chapters, ch.stem),
         '<main id="main">',
+        (f'<p class="chapter-label">Chapter {ch.number}</p>' if ch.number else ""),
         ch.body_html,
         "\n".join(nav),
         "</main>",
         "</div>",
         SEARCH_DIALOG,
+        '<script src="assets/search.js"></script>',
         '<script src="assets/book.js"></script>',
         "</body></html>",
     ])
+
+
+def cover_html(book: dict, first: Chapter) -> str:
+    """The cover: title, subtitle, byline, optional art, and a way in."""
+    art = book.get("cover_svg", "")
+    sub = f'<p class="subtitle">{inline(book["subtitle"])}</p>' if book.get("subtitle") else ""
+    by = []
+    if book.get("author"):
+        by.append(html.escape(book["author"]))
+    if book.get("edition"):
+        by.append(html.escape(book["edition"]))
+    if book.get("date"):
+        by.append(html.escape(book["date"]))
+    byline = f'<p class="byline">{" · ".join(by)}</p>' if by else ""
+    return "\n".join([
+        '<section class="cover-hero">',
+        (f'<div class="cover-art" aria-hidden="true">{art}</div>' if art else ""),
+        '<div class="cover-text">',
+        f'<h1>{html.escape(book["title"])}</h1>',
+        sub, byline,
+        "</div>",
+        "</section>",
+    ])
+
+
+def cover_cta(first: Chapter, single: bool = False) -> str:
+    begin = f"#{first.stem}" if single else f"{first.stem}.html"
+    contents = "#top" if single else "#contents"
+    return (f'<p class="cover-cta"><a href="{begin}">Begin with chapter {first.number or 1} →</a>'
+            f'<a href="{contents}">Contents</a></p>')
 
 
 def index_page(chapters: list[Chapter], book: dict, css: str) -> str:
@@ -613,25 +687,57 @@ def index_page(chapters: list[Chapter], book: dict, css: str) -> str:
     items.append("</ol>")
 
     front = book.get("front_matter_html", "")
-    sub = f'<p class="subtitle">{inline(book["subtitle"])}</p>' if book.get("subtitle") else ""
+    first = chapters[0]
 
     return "\n".join([
-        head("Contents", book["title"], css, False),
-        masthead(book["title"], "Contents"),
+        head("Cover", book["title"], css, False),
+        masthead(book["title"], "Cover",
+                 toc_html(chapters, None, glossary=bool(book.get("glossary")))),
+        cover_html(book, first),          # full-bleed, outside the text column
         '<div class="shell">',
-        toc_html(chapters, None),
         '<main id="main" class="cover">',
-        f'<h1>{html.escape(book["title"])}</h1>',
-        sub,
-        front,
-        "<h2>Contents</h2>",
+        cover_cta(first),
+        '<h2 id="contents">Contents</h2>',
         "\n".join(items),
+        (f'<p class="extras-link"><a href="glossary.html">Glossary</a> — every term the '
+         f'book introduces, with the chapter that defines it.</p>' if book.get("glossary") else ""),
+        front,
         f'<p style="margin-top:2.5rem"><a href="book.html">Read as a single page</a> '
         f"— everything in one file, for offline reading, search across the whole book, "
         f"or printing.</p>",
         "</main>",
         "</div>",
         SEARCH_DIALOG,
+        '<script src="assets/search.js"></script>',
+        '<script src="assets/book.js"></script>',
+        "</body></html>",
+    ])
+
+
+def glossary_html(book: dict, single: bool = False) -> str:
+    entries = book.get("glossary") or []
+    out = ['<dl class="glossary">']
+    for term, definition, ch in sorted(entries, key=lambda e: e[0].lower()):
+        href = f"#{ch.stem}" if single else f"{ch.stem}.html"
+        d = inline(definition) if definition else "<em>defined in the chapter</em>"
+        out.append(f'<dt id="term-{slugify(term)}">{html.escape(term)}</dt>'
+                   f'<dd>{d} <a class="where" href="{href}">ch. {ch.number}</a></dd>')
+    out.append("</dl>")
+    return "\n".join(out)
+
+
+def glossary_page(chapters: list[Chapter], book: dict, css: str) -> str:
+    return "\n".join([
+        head("Glossary", book["title"], css, False),
+        masthead(book["title"], "Glossary", toc_html(chapters, "glossary", glossary=True)),
+        '<div class="shell">',
+        '<main id="main">',
+        "<h1>Glossary</h1>",
+        "<p>Every term the book introduces, in alphabetical order, with the chapter "
+        "that defines it.</p>",
+        glossary_html(book),
+        "</main>", "</div>", SEARCH_DIALOG,
+        '<script src="assets/search.js"></script>',
         '<script src="assets/book.js"></script>',
         "</body></html>",
     ])
@@ -641,17 +747,25 @@ def single_page(chapters: list[Chapter], book: dict, css: str, js: str,
                 index: list) -> str:
     parts = [
         head(book["title"], book["title"], css, True),
-        masthead(book["title"], "Complete", home="#top"),
+        masthead(book["title"], "Complete",
+                 toc_html(chapters, None, single=True, glossary=bool(book.get("glossary"))),
+                 home="#top"),
+        cover_html(book, chapters[0]),
         '<div class="shell book-single" id="top">',
-        toc_html(chapters, None, single=True),
         '<main id="main">',
-        f'<h1>{html.escape(book["title"])}</h1>',
+        cover_cta(chapters[0], single=True),
     ]
-    if book.get("subtitle"):
-        parts.append(f'<p class="subtitle">{inline(book["subtitle"])}</p>')
+    if book.get("front_matter_html"):
+        parts.append(f'<section class="front-matter">{book["front_matter_html"]}</section>')
     for ch in chapters:
         parts.append(f'<section class="chapter" id="{ch.stem}">')
+        if ch.number:
+            parts.append(f'<p class="chapter-label">Chapter {ch.number}</p>')
         parts.append(ch.body_html)
+        parts.append("</section>")
+    if book.get("glossary"):
+        parts.append('<section class="chapter" id="glossary"><h1>Glossary</h1>')
+        parts.append(glossary_html(book, single=True))
         parts.append("</section>")
     parts += [
         "</main>", "</div>", SEARCH_DIALOG,
@@ -674,8 +788,14 @@ def load_book_meta(book: Path) -> dict:
         # deliberately tiny: top-level `key: value` only, no dependency
         for line in y.read_text().splitlines():
             m = re.match(r"^([a-z_]+):\s*(.+?)\s*$", line)
-            if m and m.group(1) in ("title", "subtitle"):
+            if m and m.group(1) in ("title", "subtitle", "author", "date", "edition"):
                 meta[m.group(1)] = m.group(2).strip().strip("\"'")
+    cover = book / "src" / "cover.svg"
+    if cover.exists():
+        svg = cover.read_text(encoding="utf-8")
+        svg = re.sub(r"<\?xml[^>]*>|<!DOCTYPE[^>]*>", "", svg).strip()
+        if svg.startswith("<svg"):
+            meta["cover_svg"] = svg
     return meta
 
 
@@ -707,9 +827,10 @@ def main() -> int:
     chapters: list[Chapter] = []
     seen_slugs: dict = {}
 
+    glossary: list = []
     for path in sorted(src.glob("*.md")):
-        if path.name.endswith(".corrected") or path.stem == "SUMMARY":
-            continue   # SUMMARY.md is generated output, not a chapter
+        if path.name.endswith(".corrected") or path.stem in ("SUMMARY", "front-matter"):
+            continue   # SUMMARY.md is generated output; front-matter.md is the cover
         text = path.read_text(encoding="utf-8")
         nm = re.match(r"^ch(\d+)", path.stem)
         number = int(nm.group(1)) if nm else None
@@ -720,15 +841,27 @@ def main() -> int:
         # first paragraph as the contents blurb
         blurb = ""
         for s in sections:
-            if s["text"]:
-                blurb = s["text"][:150].rstrip() + ("…" if len(s["text"]) > 150 else "")
+            plain = re.sub(r"<[^>]+>", "", s["text"]).strip()
+            if plain:
+                blurb = plain[:150].rstrip() + ("…" if len(plain) > 150 else "")
                 break
         chapters.append(Chapter(path.stem, number, title, body, headings,
                                 sections, blurb))
+        for term, definition in collect_terms(text):
+            glossary.append((term, definition, chapters[-1]))
 
     if not chapters:
         print(f"error: no chapters in {src}", file=sys.stderr)
         return 2
+    meta["glossary"] = glossary
+
+    # src/front-matter.md: who the book is for, who it is not for, how to read
+    # it. Rendered on the cover page and at the top of the single file; never a
+    # chapter, so it carries no number and is left out of the chapter pages.
+    fm = src / "front-matter.md"
+    if fm.exists():
+        fm_text = re.sub(r"^#\s+.*$", "", fm.read_text(encoding="utf-8"), count=1, flags=re.M)
+        meta["front_matter_html"], _, _ = render_markdown(fm_text, "front-matter", None, seen_slugs)
 
     # search index
     index = []
@@ -741,10 +874,16 @@ def main() -> int:
                 "text": s["text"],
             })
     (out / "search.json").write_text(json.dumps(index, indent=0))
+    # The same index as a script, because a book opened from disk cannot fetch():
+    # Chrome refuses fetch() on file:// URLs, and a book must work from a folder.
+    (out / "assets" / "search.js").write_text(
+        "window.__TECHBOOK_INDEX__=" + json.dumps(index).replace("<", "\\u003c") + ";\n")
 
     for ch in chapters:
         (out / f"{ch.stem}.html").write_text(chapter_page(ch, chapters, meta, css, js))
     (out / "index.html").write_text(index_page(chapters, meta, css))
+    if glossary:
+        (out / "glossary.html").write_text(glossary_page(chapters, meta, css))
 
     single_index = [dict(e, href="#" + e["href"].split("#")[-1]
                          if "#" in e["href"] else "#" + e["href"].replace(".html", ""))

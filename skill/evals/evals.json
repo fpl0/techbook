@@ -12,7 +12,14 @@
         "At least one expect-error block demonstrating a real failure",
         "Each chapter has an orientation box, >=1 diagram, >=2 <details> checkpoints, a faded exercise ladder",
         "build/index.html and build/book.html both exist; book.html has zero external references",
-        "Final report lists every norun/literal block with its stated reason"
+        "Final report lists every norun/literal block with its stated reason",
+        "Chapter code exists as file=-backed listings under code/ and passed verify.py before the prose was written",
+        "Each chapter states a crux before its first listing, owns one labelled opinion, and annotates its further reading",
+        "src/front-matter.md and src/cover.svg exist; build/index.html shows a cover with title, byline and a Start reading link",
+        "build/glossary.html exists and every chapter's Terms introduced line uses the term \u2014 definition; form",
+        "Listings in build/*.html carry syntax-highlighting spans (pre .k, .s, .c) without any external script or stylesheet",
+        "prose.py reports zero ban-list hits and em-dash density under 1 per 1,000 words; continuity.py reports no term used before its chapter",
+        "Every historical or performance claim in the chapters carries a citation whose URL urlcheck.py reports live"
       ]
     },
     {
@@ -31,7 +38,8 @@
         "Refused to render as final while any block failed verification",
         "Any package used is pinned in verify/python/pyproject.toml before execution",
         "Timing or benchmark numbers, if present, came from a real run rather than being written by hand",
-        "Blocks needing the network are tagged `net` rather than the sandbox being loosened"
+        "Blocks needing the network are tagged `net` rather than the sandbox being loosened",
+        "The outline names, for every key point, the research note that backs it; no section was drafted from memory"
       ]
     },
     {

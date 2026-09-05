@@ -14,14 +14,9 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="masthead">
-  <span class="crumb"><a href="index.html">A Rich Fixture</a> &nbsp;›&nbsp; Shapes of a Chapter</span>
+  <span class="crumb"><a class="book" href="index.html">A Rich Fixture</a><span class="sep"> &nbsp;·&nbsp; </span>Shapes of a Chapter</span>
   <span class="spacer"></span>
-  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
-  <button id="theme-toggle" type="button">Auto</button>
-</header>
-<div id="progress"></div>
-<div class="shell">
-<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+  <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
 <li><a href="ch01-shapes.html" aria-current="page"><span class="chap-num">1</span>Shapes of a Chapter</a>
 <ol class="sub">
 <li><a href="#the-problem">The problem</a></li>
@@ -30,9 +25,16 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <li><a href="#what-to-remember">What to remember</a></li>
 </ol>
 </li>
-</ol></nav>
+</ol>
+</nav></details>
+  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Theme">Auto</button>
+</header>
+<div id="progress"></div>
+<div class="shell">
 <main id="main">
-<h1 id="chapter-1-shapes-of-a-chapter">Chapter 1: Shapes of a Chapter</h1>
+<p class="chapter-label">Chapter 1</p>
+<h1 id="chapter-1-shapes-of-a-chapter">Shapes of a Chapter</h1>
 
 <p><span class="newthought">Every chapter</span> opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program.</p>
 
@@ -60,11 +62,11 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <span class="tag verified">verified</span>
 <button class="copy" type="button">Copy</button>
 </figcaption>
-<pre><code class="language-python">def average(values):
-    total = sum(values)
-<span class="hl-line">    return total / len(values)</span>
+<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
+    total = <span class="t">sum</span>(values)
+<span class="hl-line">    <span class="k">return</span> total / <span class="t">len</span>(values)</span>
 
-print(average([1, 2, 3, 4]))</code></pre>
+<span class="t">print</span>(average([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>]))</code></pre>
 <figcaption class="caption"><span class="num">Listing 1-1.</span> A first attempt at a running average.</figcaption>
 </figure>
 <div class="output-block"><div class="label">Output</div><pre>2.5</pre></div>
@@ -78,8 +80,8 @@ print(average([1, 2, 3, 4]))</code></pre>
 <span class="tag error-demo">error demo</span>
 <button class="copy" type="button">Copy</button>
 </figcaption>
-<pre><code class="language-python">def average(values):
-    return sum(values) / len(values)
+<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
+    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)
 
 average([])</code></pre>
 <figcaption class="caption"><span class="num">Listing 1-2.</span></figcaption>
@@ -148,10 +150,10 @@ only fails at the second step.</figcaption>
 <span class="tag unverified">illustrative</span>
 <button class="copy" type="button">Copy</button>
 </figcaption>
-<pre><code class="language-python">def average(values):
-    if ____:
-        return None
-    return sum(values) / len(values)</code></pre>
+<pre><code class="language-python"><span class="k">def</span> <span class="f">average</span>(values):
+    <span class="k">if</span> ____:
+        <span class="k">return</span> <span class="k">None</span>
+    <span class="k">return</span> <span class="t">sum</span>(values) / <span class="t">len</span>(values)</code></pre>
 </figure>
 
 <details><summary>Solution</summary>
@@ -185,5 +187,6 @@ the question being asked, and it works for any sequence.</p>
   <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
   <ul id="search-results"></ul>
 </dialog>
+<script src="assets/search.js"></script>
 <script src="assets/book.js"></script>
 </body></html>

@@ -158,6 +158,14 @@ of sentence that passes a ban-list check and is still bad writing.
 as machine output even when every sentence is true. Follow a long, qualified
 sentence with a short flat one. The short one is where the reader breathes.
 
+## Read it aloud
+
+Nystrom's last pass on every chapter of *Crafting Interpreters* was reading it
+aloud for cadence. Do the same before handing a chapter to the editor: read the
+whole thing, out loud or in an inner voice slow enough to notice. Where you
+stumble, the reader will. Where you speed up, you are skimming your own filler.
+Fix both.
+
 ## How the slop pass works
 
 The slop pass runs `detect` semantics, not rewrite semantics. For each hit:
