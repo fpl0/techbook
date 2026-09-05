@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basics · Good</title>
+<script>
+(function(){try{var t=localStorage.getItem("techbook-theme");
+if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/book.css">
+
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <span class="crumb"><a href="index.html">Good</a> &nbsp;›&nbsp; Basics</span>
+  <span class="spacer"></span>
+  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
+  <button id="theme-toggle" type="button">Auto</button>
+</header>
+<div id="progress"></div>
+<div class="shell">
+<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+<li><a href="ch01-basics.html" aria-current="page"><span class="chap-num">1</span>Basics</a>
+</li>
+</ol></nav>
+<main id="main">
+<h1 id="chapter-1-basics">Chapter 1: Basics</h1>
+
+<p>A plain run block with matching output.</p>
+
+<figure class="listing" id="listing-1-1">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">print(&quot;hello&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-1.</span></figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>hello</pre></div>
+
+<p>An env chain. This block defines something…</p>
+
+<figure class="listing" id="listing-1-2">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def double(n):
+    return n * 2</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-2.</span></figcaption>
+</figure>
+
+<p>…and this one uses it, as the reader would experience it.</p>
+
+<figure class="listing" id="listing-1-3">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">print(double(21))</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-3.</span></figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>42</pre></div>
+
+<p>A deliberate error demo.</p>
+
+<figure class="listing" id="listing-1-4">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag error-demo">error demo</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">1 / 0</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-4.</span></figcaption>
+</figure>
+
+<p>A compile-only check.</p>
+
+<figure class="listing" id="listing-1-5">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">compiles</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def unused(a: int) -&gt; int:
+    return a + 1</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-5.</span></figcaption>
+</figure>
+
+<p>Shell works too.</p>
+
+<figure class="listing" id="listing-1-6">
+<figcaption class="bar">
+<span class="lang">bash</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-bash">echo &quot;from bash&quot;</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-6.</span></figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>from bash</pre></div>
+
+<p>Node works too.</p>
+
+<figure class="listing" id="listing-1-7">
+<figcaption class="bar">
+<span class="lang">js</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-js">console.log(2 + 2);</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-7.</span></figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>4</pre></div>
+
+<p>Config fragments are declared, not smuggled in.</p>
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">yaml</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-yaml">server:
+  port: 8080</code></pre>
+</figure>
+
+<p>Something that genuinely cannot run here.</p>
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">not run here</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">import os
+client = os.environ[&quot;OPENAI_API_KEY&quot;]</code></pre>
+</figure>
+<nav class="chapter-nav">
+</nav>
+</main>
+</div>
+<dialog id="search" aria-label="Search the book">
+  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <ul id="search-results"></ul>
+</dialog>
+<script src="assets/book.js"></script>
+</body></html>

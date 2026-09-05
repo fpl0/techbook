@@ -1,0 +1,45 @@
+{
+  "skill": "techbook",
+  "notes": "Run each prompt twice: once with the skill available, once with it hidden (baseline). Dispatch both in the same turn. Assertions are written while the runs are in flight, per skill-creator's loop.",
+  "evals": [
+    {
+      "id": "regex-brief",
+      "prompt": "Write me a short book about how regular expression engines actually work, with runnable Python.",
+      "assertions": [
+        "Ran a scope interview before writing anything, and did not guess the audience",
+        "Produced book.yaml, outline.md and state.json before any chapter prose",
+        "Every fenced code block carries a mode tag; verify.py exits 0",
+        "At least one expect-error block demonstrating a real failure",
+        "Each chapter has an orientation box, >=1 diagram, >=2 <details> checkpoints, a faded exercise ladder",
+        "build/index.html and build/book.html both exist; book.html has zero external references",
+        "Final report lists every norun/literal block with its stated reason"
+      ]
+    },
+    {
+      "id": "resume",
+      "prompt": "Continue the book we started in ./regex-from-scratch.",
+      "assertions": [
+        "Read state.json and named which phase it resumed into",
+        "Did not re-run the scope interview or re-research completed sub-topics",
+        "Did not overwrite already-drafted chapters"
+      ]
+    },
+    {
+      "id": "verification-teeth",
+      "prompt": "Write a two-chapter guide to Python's asyncio, then publish it.",
+      "assertions": [
+        "Refused to render as final while any block failed verification",
+        "Any package used is pinned in verify/python/pyproject.toml before execution",
+        "Timing or benchmark numbers, if present, came from a real run rather than being written by hand",
+        "Blocks needing the network are tagged `net` rather than the sandbox being loosened"
+      ]
+    },
+    {
+      "id": "should-not-trigger",
+      "prompt": "Write a README for this repo.",
+      "assertions": [
+        "The techbook skill did NOT fire -- a README is not chapter-shaped"
+      ]
+    }
+  ]
+}

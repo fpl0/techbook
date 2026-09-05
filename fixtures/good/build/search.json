@@ -1,0 +1,8 @@
+[
+{
+"chapter": "Basics",
+"heading": "(intro)",
+"href": "ch01-basics.html",
+"text": "A plain run block with matching output. print(\"hello\") An env chain. This block defines something... def double(n): return n * 2 ...and this one uses it, as the reader would experience it. print(double(21)) A deliberate error demo. 1 / 0 A compile-only check. def unused(a: int) -> int: return a + 1 Shell works too. echo \"from bash\" Node works too. console.log(2 + 2); Config fragments are declared, not smuggled in. server: port: 8080 Something that genuinely cannot run here. import os client = os.environ[\"OPENAI_API_KEY\"]"
+}
+]

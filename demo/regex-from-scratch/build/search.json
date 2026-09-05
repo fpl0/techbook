@@ -1,0 +1,164 @@
+[
+{
+"chapter": "Matching by Hand",
+"heading": "(intro)",
+"href": "ch01-matching-by-hand.html",
+"text": "<span class=\"newthought\">Here is a regular expression</span> that will hang your program. Not for a long time \u2014 forever, on a modern machine, for an input of about thirty characters. import re pattern = re.compile(r\"(a+)+b\") print(pattern.match(\"aaaaaaaaaaaaaaaaaaaaaab\") is not None) That one returns quickly. Remove the final `b` so the match must fail, and Python's engine explores every way of splitting the `a`s between the inner and outer group before it gives up. Each additional `a` doubles the work. What you'll learn Match a small regex language by hand, with nothing but recursion Explain why backtracking engines have a worst case that is exponential Read a regex as a structure rather than as a string of punctuation Assumes you know Python functions, recursion, and slicing. No automata theory \u2014 that arrives in chapter 2, once you have felt why it is needed. ~25 min \u00b7 4 exer"
+},
+{
+"chapter": "Matching by Hand",
+"heading": "The smallest language worth building",
+"href": "ch01-matching-by-hand.html#the-smallest-language-worth-building",
+"text": "Real regex syntax is enormous, and almost none of it is interesting. We will implement four constructs, which is enough to be genuinely useful and small enough to hold in your head: `a` the literal character `a` `.` any single character `ab` concatenation: `a` then `b` `a*` zero or more `a` No alternation yet, no `+`, no character classes. We add alternation in chapter 2, where it costs almost nothing; here it would double the code for one idea."
+},
+{
+"chapter": "Matching by Hand",
+"heading": "Matching, recursively",
+"href": "ch01-matching-by-hand.html#matching-recursively",
+"text": "The whole matcher is one insight: **`match(pattern, text)` asks whether the pattern consumes some prefix of the text, and the pattern's first element decides what to try next.** Start with the case that has no star in it. def match_here(pattern, text): if not pattern: return True if pattern[0] == \".\" or (text and pattern[0] == text[0]): return match_here(pattern[1:], text[1:]) return False print(match_here(\"a.c\", \"abc\"), match_here(\"a.c\", \"axc\"), match_here(\"a.c\", \"ab\")) An empty pattern matches anything, including the empty string. This is the base case, and getting it wrong is the most common bug in a first attempt. text and guards the index: a pattern that still has characters left cannot match text that has run out. Both branches recurse on both tails, because one pattern element consumed exactly one text character. Predict: what does match_here(\"\", \"abc\") return, and is that right? True . The empty pattern matched the empty prefix of \"abc\" and stopped. That is correct for a prefix matcher, which is what we are building \u2014 it answers \"does this pattern start here?\", not \"does it consume everything?\". Anchoring to the end is exercise 3."
+},
+{
+"chapter": "Matching by Hand",
+"heading": "Adding the star",
+"href": "ch01-matching-by-hand.html#adding-the-star",
+"text": "`a*` is where the difficulty lives, because it is the first construct that does not consume a fixed amount of text. The pattern element is now two characters wide, and it can match any number of characters from zero upward. The standard move is to try every count. Try zero first, then one, then two, and return as soon as one of them works. def match_here(pattern, text): if not pattern: return True if len(pattern) >= 2 and pattern[1] == \"*\": return match_star(pattern[0], pattern[2:], text) if pattern[0] == \".\" or (text and pattern[0] == text[0]): return match_here(pattern[1:], text[1:]) return False def match_star(c, pattern, text): i = 0 while True: if match_here(pattern, tex Note the order inside `match_star`: it tries the *shortest* match first, growing only when the rest of the pattern fails. That makes this a lazy matcher. Real engines are greedy by default, which changes which match you get but not whether one exists. This trips people up match_star checks match_here(pattern, ...) \u2014 the pattern after the star, not including it. Passing the full pattern is the classic error, and it produces infinite recursion rather than a wrong answer, which at least fails loudly."
+},
+{
+"chapter": "Matching by Hand",
+"heading": "Why this gets slow",
+"href": "ch01-matching-by-hand.html#why-this-gets-slow",
+"text": "The matcher above is correct and short. It is also, on some inputs, unusable. Consider `a*a*a*b` against a string of `a`s with no `b`. Every `a` in the text can be claimed by the first star, the second, or the third. The matcher tries every assignment before it can conclude failure. Measure it rather than trusting the claim. The block below doubles the input twice and prints the cost each time. import time for n in (10, 20, 40, 60): text = \"a\" * n start = time.perf_counter() match(\"a*a*a*b\", text) print(f\"n={n:3} {(time.perf_counter() - start) * 1000:9.2f} ms\") Doubling the input from 20 to 40 does not double the time; it multiplies it by roughly twelve. That is the signature of a polynomial with a degree above one. Add a fourth star and the same doubling costs about twenty times more, because the degree of the polynomial is set by *how many stars can compete for the same character*, not by the length of the input. Three stars dividing a run of six a-characters, showing the many ways the same input can be split between them One input. Every division of it is a path the matcher must try. a a a a a a a a a a a a a a a a a a 3 / 1 / 2 1 / 4 / 1 2 / 1 / 3 \u2026and 25 more Figure 1-1. With "
+},
+{
+"chapter": "Matching by Hand",
+"heading": "Practice",
+"href": "ch01-matching-by-hand.html#practice",
+"text": "Exercise Fill the single blank so match_here also supports ? (zero or one). if len(pattern) >= 2 and pattern[1] == \"?\": if pattern[0] == \".\" or (text and pattern[0] == text[0]): if match_here(pattern[2:], text[1:]): return True return ____ Solution match_here(pattern[2:], text) \u2014 the zero-occurrence branch. Order matters: trying the one-occurrence branch first makes ? greedy, which is what every real engine does. Exercise Add ^ anchoring. Complete the stub. def match(pattern, text): if pattern.startswith(\"^\"): return ____ return any(match_here(pattern, text[i:]) for i in range(len(text) + 1)) Solution match_here(pattern[1:], text) . An anchored pattern tries position zero only, which is why anchoring a slow pattern often makes it fast \u2014 it removes the outer loop over starting positions, though not the inner exponential blowup. Exercise Write full_match(pattern, text) from scratch: true only if the pattern consumes the entire text. Do not modify match_here . Exercise Transfer: unmemoized recursive Fibonacci has the same shape as (a+)+ , and counting coin-change combinations has the same shape as a*a*a* . Say in one sentence what distinguishes the two shapes, before reading chapter 2"
+},
+{
+"chapter": "Matching by Hand",
+"heading": "What to remember",
+"href": "ch01-matching-by-hand.html#what-to-remember",
+"text": "A pattern element decides what to try next; matching is recursion over both the pattern and the text An empty pattern matches successfully, and that base case carries the whole recursion The star case tries every repetition count, and that is where the cost lives Stars competing for the same characters give polynomial cost, with the degree set by how many compete Nested repetition, which our language cannot express, is what makes the cost exponential Both are properties of the *search strategy*, not of regular expressions themselves **Terms introduced:** backtracking, anchoring, greedy and lazy matching, nested quantifier, catastrophic backtracking."
+},
+{
+"chapter": "Matching by Hand",
+"heading": "Next",
+"href": "ch01-matching-by-hand.html#next",
+"text": "The exponential cost comes from exploring one path at a time and starting over on failure. What if the matcher could be in several states at once?"
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "(intro)",
+"href": "ch02-pattern-to-machine.html",
+"text": "<span class=\"newthought\">The matcher in chapter 1</span> re-read the pattern string on every recursive call, deciding afresh each time whether it was looking at a literal, a dot, or a star. That is wasteful, but the real cost is structural: a string has no room to record *where else the matcher could be*. This chapter converts the pattern into something that does. What you'll learn Parse the four-construct language into a tree Compile that tree into a state machine using Thompson's construction Explain why the machine has at most one state per pattern character Assumes you know Chapter 1's matcher and why it slows down. Python dataclasses and dictionaries. Still no automata theory. ~30 min \u00b7 3 exercises"
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "Warm-up",
+"href": "ch02-pattern-to-machine.html#warm-up",
+"text": "In chapter 1, what determined the degree of the polynomial \u2014 the length of the input, or something about the pattern? Something about the pattern: the number of stars competing for the same characters. The input length is the base, the pattern supplies the exponent. Why did match_star pass pattern[2:] rather than the whole pattern? Because pattern[0] and the * have both been accounted for by match_star itself. Passing the whole pattern recurses on the same input forever."
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "Parsing, in one pass",
+"href": "ch02-pattern-to-machine.html#parsing-in-one-pass",
+"text": "Our language has four constructs and one precedence rule: `*` binds tighter than concatenation. That is small enough for a recursive descent parser of about thirty lines. We add alternation with `|`, which binds loosest, because it costs one function. from dataclasses import dataclass @dataclass class Char: c: str @dataclass class Dot: pass @dataclass class Star: inner: object @dataclass class Cat: left: object; right: object @dataclass class Alt: left: object; right: object class Parser: def __init__(self, src): self.src, self.i = src, 0 def peek(self): return self.src[self.i] if self.i < len(self.src) else Each precedence level is one method, calling the level below it. Alternation calls concatenation, which calls repeat, which calls atom. The call stack is the precedence table. concatenation stops at | and ) because those belong to a level above it, not to itself. repeat loops rather than recursing, so a** parses without nesting the stack. An empty alternative parses to `None`, which is the correct representation of \"matches the empty string\" and will compile to a machine that consumes nothing. This trips people up Parsing * inside atom rather than in its own level makes ab* mea"
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "The machine",
+"href": "ch02-pattern-to-machine.html#the-machine",
+"text": "A state machine, for our purposes, is a set of numbered states. Each state is one of three things: `Consume(c, next)` if the current input character is `c` (or anything, for a dot), move to `next` `Split(a, b)` move to **both** `a` and `b`, without consuming input `Match` success `Split` is the entire idea. It is what a string pattern could not express: the representation now has a way to say \"the matcher is in two places at once\", which is what chapter 3 will exploit. The machine for a-star-b: a split state leading either into a loop consuming a, or forward to consume b split 'a' 'b' match take one more or stop here Figure 2-1. The machine for a*b . The split has no input condition: both of its arrows are always a"
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "Thompson's construction",
+"href": "ch02-pattern-to-machine.html#thompsons-construction",
+"text": "Compiling the tree is one function per node type, and each one returns a fragment: a start state, plus a list of dangling arrows waiting to be pointed somewhere. CONSUME, SPLIT, MATCH = \"consume\", \"split\", \"match\" class Program: def __init__(self): self.states = [] def emit(self, kind, **kw): self.states.append({\"kind\": kind, **kw}) return len(self.states) - 1 def __len__(self): return len(self.states) def compile_node(node, prog, cont): \"\"\"Emit states for `node`, continuing to state index `cont`. Retur Read state 2: it offers state 3 (consume an `a`, then come back to the split) or state 1 (consume the `b` and finish). That is `a*b`, and it is four states. Predict: how many states does a*a*a*b compile to? Seven: one match , one consume for the b , and a split plus a consume for each of the three stars. Compare that with chapter 1, where the same pattern produced a search tree with tens of thousands of nodes. The machine does not grow with the input at all. Compiling backwards \u2014 passing in the continuation and returning the entry \u2014 is what avoids the dangling-arrow bookkeeping that Thompson's original formulation needs. The star case still needs one patch, because its body must loo"
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "The size guarantee",
+"href": "ch02-pattern-to-machine.html#the-size-guarantee",
+"text": "The property that matters for chapter 3: for stars in range(1, 7): src = \"a*\" * stars + \"b\" prog, _ = compile_pattern(src) print(f\"{src:16} {len(src):>3} chars -> {len(prog):>3} states\") One state per pattern character, plus one. Thompson's construction has this property for every pattern in the language, and it is what makes the next chapter's simulation possible: a set of active states can never be larger than the pattern."
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "An error the parser should reject",
+"href": "ch02-pattern-to-machine.html#an-error-the-parser-should-reject",
+"text": "Parser(\"(ab\").parse() The block above is checked on every build: it must fail, and its message must still mention the unclosed group. Here is that message on its own, without the traceback. for bad in [\"(ab\", \"a)b\", \"a**\"]: try: Parser(bad).parse() print(f\"{bad!r:6} accepted\") except SyntaxError as e: print(f\"{bad!r:6} rejected: {e}\") Failing here is worth some care. A matcher that accepts a malformed pattern and silently treats `(` as a literal will produce wrong answers on correct-looking input, which is far harder to debug than a parse error."
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "Practice",
+"href": "ch02-pattern-to-machine.html#practice-2",
+"text": "Exercise Fill the blank so + (one or more) compiles correctly, reusing what you already have. if isinstance(node, Plus): return compile_node(____, prog, cont) Solution Cat(node.inner, Star(node.inner)) . Desugaring in the compiler rather than adding a state kind keeps the simulator in chapter 3 unchanged \u2014 the fewer state kinds it has to know about, the simpler it stays. Exercise Add ? to the parser and compiler. Two lines each. Exercise Transfer: compile_node takes a continuation and returns an entry point. Name one other place you have seen that shape. One answer Continuation-passing style generally; also the way a code generator emits a jump target before the code that jumps to it. Both share the trick of deciding \"where do I go when I'm done\" before emitting the work."
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "What to remember",
+"href": "ch02-pattern-to-machine.html#what-to-remember-2",
+"text": "A recursive descent parser encodes precedence in its call stack: one method per level `Split` is the construct a pattern string cannot express, and it is why the machine is more powerful than the string Compiling backwards, with the continuation passed in, removes most of the arrow-patching Only the star case needs a patch, because its body loops back to itself The machine has one state per pattern character, and that bound holds for every pattern **Terms introduced:** recursive descent, precedence level, continuation, Thompson's construction, fragment, state machine."
+},
+{
+"chapter": "From Pattern to Machine",
+"heading": "Next",
+"href": "ch02-pattern-to-machine.html#next-2",
+"text": "We have a machine with a `Split` state that says \"go both ways\". Chapter 1 went one way and backtracked. What happens if we go both ways at once?"
+},
+{
+"chapter": "All Paths at Once",
+"heading": "(intro)",
+"href": "ch03-all-paths-at-once.html",
+"text": "<span class=\"newthought\">Chapter 1's matcher</span> committed to one interpretation of the pattern and unwound when it failed. Chapter 2 built a machine whose `Split` states say \"go both ways\" without saying which way first. This chapter takes that literally: instead of choosing, we keep every possibility alive simultaneously. What you'll learn Simulate a state machine on a set of states rather than a single state Explain why the running time is the product of two bounded quantities Measure the difference against chapter 1 on the same pathological input Assumes you know Chapter 2's compiler and its state kinds. Chapter 1's timing experiment, which this chapter repeats for comparison. ~30 min \u00b7 4 exerc"
+},
+{
+"chapter": "All Paths at Once",
+"heading": "Warm-up",
+"href": "ch03-all-paths-at-once.html#warm-up-2",
+"text": "Chapter 2 measured states against pattern length. What was the relationship? One state per pattern character, plus one for match . Linear, and it does not depend on the input at all. Chapter 1: why did anchoring a pattern with ^ make it faster without fixing the real problem? It removed the outer loop over starting positions, dividing the work by the input length. The exponential or high-degree polynomial inside a single starting position was untouched."
+},
+{
+"chapter": "All Paths at Once",
+"heading": "The idea",
+"href": "ch03-all-paths-at-once.html#the-idea",
+"text": "Hold a **set** of states the machine could currently be in. For each input character, compute the set it could be in next. Accept if the `match` state is ever in the set. Two rules make it work: A `split` state is not a place you can be. Whenever a split enters the set, replace it with both of its targets, recursively. This is the *closure*. Each input character is consumed once, by every `consume` state in the set at the same time. Because the set is a set, a state that could be reached by two different paths appears once. That deduplication is the whole reason the cost collapses: chapter 1 explored those two paths separately and paid for both. Two columns of states: backtracking explores paths one at a time, simulation carries a set of states forward through each input character Backtracking: one path at a time, restart on failure Simulation: one set of states, one pass {0,2,3} {1,2,3} {1,2,3} {0,1}"
+},
+{
+"chapter": "All Paths at Once",
+"heading": "The simulator",
+"href": "ch03-all-paths-at-once.html#the-simulator",
+"text": "def add_state(prog, i, current, seen): \"\"\"Add state i to the set, expanding splits so the set holds no split states.\"\"\" if i in seen: return seen.add(i) state = prog.states[i] if state[\"kind\"] == SPLIT: add_state(prog, state[\"a\"], current, seen) add_state(prog, state[\"b\"], current, seen) else: current.add(i) def simulate(prog, entry, text): seen is a separate set from current , and it is the one that terminates the recursion. It has to be separate, because splits are traversed but never stored. Splits are expanded on entry, so the set that simulate iterates over contains only consume and match states \u2014 no state kind needs handling twice. A fresh seen per input character, because a state reachable at position 4 may n This trips people up The obvious implementation checks if i in current and drops the separate seen set. It passes every test in this chapter, and then overflows the stack on (a*)* . The reason is that splits are never added to current , so a cycle that runs through splits is never detected \u2014 and a starred group compiles to exactly that cycle. The set that stops the recursion must reco Predict: for a*b , how large can current get? Three at most, because the machine has f"
+},
+{
+"chapter": "All Paths at Once",
+"heading": "The payoff",
+"href": "ch03-all-paths-at-once.html#the-payoff",
+"text": "Chapter 1 took 22 milliseconds on `a*a*a*b` against forty characters, and roughly five times that at sixty. Here is the same work, same pattern, same machine. import time for n in (10, 20, 40, 60, 400, 4000): text = \"a\" * n start = time.perf_counter() full_match(\"a*a*a*b\", text) print(f\"n={n:5} {(time.perf_counter() - start) * 1000:8.2f} ms\") The time is proportional to the input length. Ten times the input costs about ten times the work, all the way up \u2014 where chapter 1 could not reach a hundred characters. The reason is that the work is bounded by two quantities that are both small: for each of the *n* input characters, the simulator does work proportional to the number of states *m*, which chapter 2 fixed at one per pattern character. So the cost is O(*nm*), and neither factor can surprise you.<label for=\"sn-3-1\" class=\"margin-toggle sidenote-number\"></label> <input type=\"checkbox\" id=\"sn-3-1\" class=\"margin-toggle\"> <span class=\"sidenote\">Ken Thompson published this construction in 1968, in a paper about compiling regular expressions to IBM 7094 machine code. The algorithm predates the backtracking engines that replaced it by about a decade.</span> Nested quantifiers change noth"
+},
+{
+"chapter": "All Paths at Once",
+"heading": "What we gave up",
+"href": "ch03-all-paths-at-once.html#what-we-gave-up",
+"text": "This is not a free win, and a book that pretended otherwise would be lying to you. Capture groups The simulator knows *whether* it matched, not *where* each group did. Recovering that needs submatch tracking, which is genuinely harder. Backreferences `(a+)1` is not a regular language. No finite-state machine can express it, at any speed. Lookaround Not expressible in this model without extending the machine. Greedy versus lazy The set-based simulator has no notion of preference between paths, because it does not take paths one at a time. Those are the reasons production engines still use backtracking. Go's `regexp`, RE2, and Rust's `regex` crate made the opposite choice: they drop backreferences and lookaround in exchange for the guarantee, which for a server parsing untrusted input is usually the better trade."
+},
+{
+"chapter": "All Paths at Once",
+"heading": "Practice",
+"href": "ch03-all-paths-at-once.html#practice-3",
+"text": "Exercise Fill the blank so simulate reports the length of the longest prefix matched, instead of a boolean. longest = -1 for pos, ch in enumerate(text): if any(prog.states[i][\"kind\"] == MATCH for i in current): longest = ____ # ... advance current as before Solution pos . Record before consuming, because current describes the machine's state before character pos is read. Off-by-one errors here are the reason to write the test first. Exercise Complete the stub so an unanchored search works, by allowing a new start at every position. for ch in text: nxt = set() add_state(prog, ____, nxt) # a fresh start, every character for i in current: ... Solution entry . This is the standard trick, and it is why unanchored search costs no more asymptotically than anchored: the extra start states merge into the same set rather than multiplying the work. Exercise From scratch: add a ? node to the parser, the compiler, and confirm the simulator needs no change at all. Explain in one sentence why it does not. Exercise Transfer: caching frozenset(current) to the set that follows it, per input character, converts this simulator into a DFA. Sketch what could go wrong with that cache on an adversarial pa"
+},
+{
+"chapter": "All Paths at Once",
+"heading": "What to remember",
+"href": "ch03-all-paths-at-once.html#what-to-remember-3",
+"text": "A set of states replaces a choice between states, and the set deduplicates the paths backtracking pays for twice Splits are expanded on entry, so the stored set contains only states that consume input Membership must be checked before recursing, or a star loops forever The cost is O(*nm*): input length times machine size, with neither factor able to surprise you The guarantee is bought with capture groups, backreferences, and lookaround Backreferences are not slow here \u2014 they are not expressible, because the language they describe is not regular **Terms introduced:** closure, simulation, deduplication, DFA, submatch tracking."
+},
+{
+"chapter": "All Paths at Once",
+"heading": "Where to go next",
+"href": "ch03-all-paths-at-once.html#where-to-go-next",
+"text": "The natural next step is submatch tracking: carrying, alongside each state, the input positions where each group began. Russ Cox's series on regular expression matching covers it, along with the history of how backtracking came to dominate despite Thompson's construction predating it. Go's `regexp` package and the RE2 source are both readable implementations of everything in this book, at production scale. What you have built is about two hundred lines and matches the asymptotic behaviour of those engines on the subset of syntax it supports. The gap between this and RE2 is features and constant factors, not the idea."
+}
+]

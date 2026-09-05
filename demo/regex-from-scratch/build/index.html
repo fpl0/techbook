@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contents · A Regex Engine From Scratch</title>
+<script>
+(function(){try{var t=localStorage.getItem("techbook-theme");
+if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/book.css">
+
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <span class="crumb"><a href="index.html">A Regex Engine From Scratch</a> &nbsp;›&nbsp; Contents</span>
+  <span class="spacer"></span>
+  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
+  <button id="theme-toggle" type="button">Auto</button>
+</header>
+<div id="progress"></div>
+<div class="shell">
+<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+<li><a href="ch01-matching-by-hand.html"><span class="chap-num">1</span>Matching by Hand</a>
+</li>
+<li><a href="ch02-pattern-to-machine.html"><span class="chap-num">2</span>From Pattern to Machine</a>
+</li>
+<li><a href="ch03-all-paths-at-once.html"><span class="chap-num">3</span>All Paths at Once</a>
+</li>
+</ol></nav>
+<main id="main" class="cover">
+<h1>A Regex Engine From Scratch</h1>
+<p class="subtitle">Building a working matcher in 200 lines of Python, and understanding why it is fast</p>
+
+<h2>Contents</h2>
+<ol class="contents">
+<li><a href="ch01-matching-by-hand.html"><span class="n">1</span><span class="t">Matching by Hand<span class="blurb"><span class="newthought">Here is a regular expression</span> that will hang your program. Not for a long time — forever, on a modern machine, for an i…</span></span></a></li>
+<li><a href="ch02-pattern-to-machine.html"><span class="n">2</span><span class="t">From Pattern to Machine<span class="blurb"><span class="newthought">The matcher in chapter 1</span> re-read the pattern string on every recursive call, deciding afresh each time whether it was…</span></span></a></li>
+<li><a href="ch03-all-paths-at-once.html"><span class="n">3</span><span class="t">All Paths at Once<span class="blurb"><span class="newthought">Chapter 1's matcher</span> committed to one interpretation of the pattern and unwound when it failed. Chapter 2 built a machi…</span></span></a></li>
+</ol>
+<p style="margin-top:2.5rem"><a href="book.html">Read as a single page</a> — everything in one file, for offline reading, search across the whole book, or printing.</p>
+</main>
+</div>
+<dialog id="search" aria-label="Search the book">
+  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <ul id="search-results"></ul>
+</dialog>
+<script src="assets/book.js"></script>
+</body></html>

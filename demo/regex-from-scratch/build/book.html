@@ -1,0 +1,2070 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Regex Engine From Scratch · A Regex Engine From Scratch</title>
+<script>
+(function(){try{var t=localStorage.getItem("techbook-theme");
+if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   techbook — book.css
+   No framework, no web fonts, no build step, no network at read time.
+   Every colour is defined on bare :root first, then overridden for dark, so
+   nothing has its only definition inside a media query.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light dark;
+
+  --font-prose: "Iowan Old Style", Charter, "Bitstream Charter", Cambria, Georgia, serif;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-code: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --measure: 68ch;
+  --rail-left: 16rem;
+  --rail-right: 15rem;
+  --header-h: 3.25rem;
+
+  /* light palette */
+  --bg: #fdfdfb;
+  --bg-raised: #f6f5f1;
+  --bg-code: #f4f3ef;
+  --bg-output: #eeece6;
+  --fg: #1a1a1a;
+  --fg-muted: #5c5a55;
+  --fg-faint: #86837c;
+  --rule: #dfdcd4;
+  --rule-strong: #c6c2b8;
+  --accent: hsl(200 80% 34%);
+  --accent-bg: hsl(200 70% 94%);
+  --warn: hsl(28 75% 38%);
+  --warn-bg: hsl(38 85% 94%);
+  --ok: hsl(145 55% 30%);
+  --hl-line: hsl(48 90% 88%);
+
+  /* diagram kit — SVG references these, so diagrams invert for free */
+  --dia-fg: var(--fg);
+  --dia-muted: var(--fg-faint);
+  --dia-accent: var(--accent);
+  --dia-warn: var(--warn);
+  --dia-fill: var(--bg-raised);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16171a;
+    --bg-raised: #1e2024;
+    --bg-code: #1e2024;
+    --bg-output: #191b1e;
+    --fg: #e6e3dd;
+    --fg-muted: #a8a49b;
+    --fg-faint: #807c74;
+    --rule: #2c2f34;
+    --rule-strong: #3d4147;
+    --accent: hsl(200 70% 62%);
+    --accent-bg: hsl(200 40% 18%);
+    --warn: hsl(35 80% 62%);
+    --warn-bg: hsl(35 40% 16%);
+    --ok: hsl(145 45% 60%);
+    --hl-line: hsl(48 30% 20%);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #16171a;
+  --bg-raised: #1e2024;
+  --bg-code: #1e2024;
+  --bg-output: #191b1e;
+  --fg: #e6e3dd;
+  --fg-muted: #a8a49b;
+  --fg-faint: #807c74;
+  --rule: #2c2f34;
+  --rule-strong: #3d4147;
+  --accent: hsl(200 70% 62%);
+  --accent-bg: hsl(200 40% 18%);
+  --warn: hsl(35 80% 62%);
+  --warn-bg: hsl(35 40% 16%);
+  --ok: hsl(145 45% 60%);
+  --hl-line: hsl(48 30% 20%);
+}
+
+/* ── base ─────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-padding-top: calc(var(--header-h) + 1.5rem);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-prose);
+  font-size: clamp(1.0625rem, 0.98rem + 0.42vw, 1.1875rem);
+  line-height: 1.65;
+  font-kerning: normal;
+  font-variant-numeric: oldstyle-nums;
+  text-rendering: optimizeLegibility;
+}
+
+:where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-ui);
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.011em;
+  margin: 2.2em 0 0.5em;
+  scroll-margin-top: calc(var(--header-h) + 1.5rem);
+  text-wrap: balance;
+}
+
+h1 { font-size: 2.25rem; margin-top: 0; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.25rem; }
+h4 {
+  font-size: 1.0625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+
+p { margin: 0 0 1.15em; }
+p + p { text-indent: 0; }
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 2.5em 0;
+}
+
+blockquote {
+  margin: 1.5em 0;
+  padding-left: 1.2em;
+  border-left: 3px solid var(--rule-strong);
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+strong { font-weight: 650; }
+
+/* first-paragraph small caps opener */
+.newthought { font-variant: small-caps; font-size: 1.1em; letter-spacing: 0.02em; }
+
+/* ── layout ───────────────────────────────────────────────────────────────── */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1.25rem;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+}
+
+.masthead .crumb { color: var(--fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.masthead .crumb a { color: inherit; text-decoration: none; }
+.masthead .crumb a:hover { color: var(--accent); }
+.masthead .spacer { flex: 1; }
+
+.masthead button, .masthead .btn {
+  font: inherit;
+  font-family: var(--font-ui);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--fg-muted);
+  border-radius: 5px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.masthead button:hover { color: var(--fg); border-color: var(--fg-faint); }
+
+#progress {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--accent);
+  z-index: 60;
+  transition: width 90ms linear;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns:
+    [nav] var(--rail-left)
+    [gutter] 2.5rem
+    [text] minmax(0, var(--measure))
+    [gap] 2rem
+    [side] var(--rail-right)
+    [end];
+  justify-content: center;
+  gap: 0;
+  padding: 2.5rem 1.5rem 6rem;
+}
+
+main { grid-column: text; min-width: 0; }
+
+/* ── left rail: table of contents ─────────────────────────────────────────── */
+
+.toc {
+  grid-column: nav;
+  position: sticky;
+  top: calc(var(--header-h) + 2rem);
+  align-self: start;
+  max-height: calc(100vh - var(--header-h) - 4rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  padding-right: 1rem;
+}
+
+.toc h2 {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fg-faint);
+  margin: 0 0 0.75rem;
+}
+
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0 0 0.1rem; }
+.toc a {
+  display: block;
+  padding: 0.2rem 0.5rem;
+  color: var(--fg-muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 3px 3px 0;
+}
+.toc a:hover { color: var(--fg); background: var(--bg-raised); }
+.toc a[aria-current] {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 550;
+}
+.toc .sub { padding-left: 0.75rem; font-size: 0.9em; }
+.toc .chap-num { color: var(--fg-faint); font-variant-numeric: tabular-nums; margin-right: 0.35em; }
+
+/* ── right rail: sidenotes (Tufte, CSS only) ──────────────────────────────── */
+
+.sidenote, .marginnote {
+  grid-column: side;
+  float: right;
+  clear: right;
+  width: var(--rail-right);
+  margin-right: calc(-1 * (var(--rail-right) + 2rem));
+  margin-bottom: 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  position: relative;
+  vertical-align: baseline;
+}
+
+.sidenote-number { counter-increment: sidenote-counter; }
+.sidenote-number::after {
+  content: counter(sidenote-counter);
+  font-size: 0.7rem;
+  top: -0.5rem;
+  left: 0.1rem;
+  position: relative;
+  vertical-align: baseline;
+  color: var(--accent);
+}
+.sidenote::before {
+  content: counter(sidenote-counter) " ";
+  font-size: 0.7rem;
+  top: -0.5rem;
+  position: relative;
+  vertical-align: baseline;
+  color: var(--accent);
+}
+body { counter-reset: sidenote-counter; }
+
+input.margin-toggle { display: none; }
+label.margin-toggle:not(.sidenote-number) { display: none; }
+label.sidenote-number { display: inline; cursor: pointer; }
+
+/* ── figures, diagrams, tables ────────────────────────────────────────────── */
+
+figure { margin: 1.8em 0; }
+figure img, figure svg { max-width: 100%; height: auto; display: block; }
+figcaption {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: var(--fg-muted);
+  margin-top: 0.6em;
+  line-height: 1.45;
+}
+
+.fullwidth { grid-column: text / end; max-width: none; }
+
+.table-wrap { overflow-x: auto; margin: 1.5em 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+}
+th, td {
+  text-align: left;
+  padding: 0.5em 0.8em;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+th { font-weight: 600; border-bottom-color: var(--rule-strong); }
+tbody tr:hover { background: var(--bg-raised); }
+
+/* ── code ─────────────────────────────────────────────────────────────────── */
+
+code {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  font-variant-ligatures: none;
+  background: var(--bg-code);
+  padding: 0.12em 0.32em;
+  border-radius: 3px;
+}
+
+pre {
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  tab-size: 4;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  background: var(--bg-code);
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+figure.listing {
+  margin: 1.8em 0;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bg-code);
+}
+
+figure.listing > figcaption.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+}
+figcaption.bar .file { font-family: var(--font-code); color: var(--fg); }
+figcaption.bar .lang {
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.6875rem;
+  color: var(--fg-faint);
+}
+figcaption.bar .spacer { flex: 1; }
+figcaption.bar .tag {
+  font-size: 0.6875rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid var(--rule-strong);
+}
+figcaption.bar .tag.verified { color: var(--ok); border-color: var(--ok); }
+figcaption.bar .tag.error-demo { color: var(--warn); border-color: var(--warn); }
+figcaption.bar .tag.unverified { color: var(--fg-faint); }
+
+button.copy {
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--fg-muted);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  cursor: pointer;
+}
+button.copy:hover { color: var(--fg); border-color: var(--fg-faint); }
+button.copy[data-copied] { color: var(--ok); border-color: var(--ok); }
+
+figure.listing > figcaption.caption {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--rule);
+  background: var(--bg-raised);
+}
+figure.listing > figcaption.caption .num {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* highlighted lines */
+pre .hl-line {
+  display: inline-block;
+  width: 100%;
+  background: var(--hl-line);
+  box-shadow: -1rem 0 0 var(--hl-line), 1rem 0 0 var(--hl-line);
+}
+
+/* output blocks read as results, not as source */
+.output-block {
+  margin: -1.8em 0 1.8em;
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 7px 7px;
+  background: var(--bg-output);
+}
+.output-block .label {
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-faint);
+  padding: 0.35rem 0.75rem 0;
+}
+.output-block pre {
+  background: none;
+  white-space: pre-wrap;
+  color: var(--fg-muted);
+  padding-top: 0.35rem;
+}
+
+/* code annotations ①②③ */
+.annot {
+  list-style: none;
+  counter-reset: annot;
+  margin: 0.8em 0 0;
+  padding: 0;
+  font-size: 0.9375rem;
+}
+.annot li {
+  counter-increment: annot;
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.4em;
+}
+.annot li::before {
+  content: counter(annot);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+
+/* ── didactic furniture ───────────────────────────────────────────────────── */
+
+.orient {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 7px 7px 0;
+  background: var(--bg-raised);
+  padding: 1rem 1.25rem;
+  margin: 1.8em 0;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+}
+.orient h2, .orient h3 {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fg-faint);
+  margin: 0 0 0.5rem;
+}
+.orient ul { margin: 0 0 0.75rem; padding-left: 1.15rem; }
+.orient li { margin-bottom: 0.25rem; }
+.orient .meta { color: var(--fg-faint); font-size: 0.8125rem; }
+
+.callout {
+  border: 1px solid var(--warn);
+  border-radius: 7px;
+  background: var(--warn-bg);
+  padding: 0.9rem 1.15rem;
+  margin: 1.8em 0;
+}
+.callout > .title {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--warn);
+  margin-bottom: 0.4rem;
+}
+.callout > :last-child { margin-bottom: 0; }
+
+details {
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 0.7rem 1rem;
+  margin: 1.4em 0;
+  background: var(--bg-raised);
+}
+details[open] { padding-bottom: 0.9rem; }
+summary {
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 550;
+  color: var(--fg);
+  list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 1.1em;
+  color: var(--accent);
+  transition: transform 120ms ease;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+details > :nth-child(2) { margin-top: 0.8em; }
+details > :last-child { margin-bottom: 0; }
+
+.exercises { counter-reset: ex; }
+.exercise {
+  border-top: 1px solid var(--rule);
+  padding-top: 1.1em;
+  margin-top: 1.4em;
+}
+.exercise > .label {
+  counter-increment: ex;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-faint);
+}
+.exercise > .label::after { content: " " counter(ex); }
+
+/* ── chapter nav ──────────────────────────────────────────────────────────── */
+
+.chapter-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+.chapter-nav a {
+  display: block;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  text-decoration: none;
+  color: var(--fg);
+  font-family: var(--font-ui);
+}
+.chapter-nav a:hover { border-color: var(--accent); background: var(--bg-raised); }
+.chapter-nav .dir { display: block; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--fg-faint); margin-bottom: 0.2rem; }
+.chapter-nav .t { font-size: 0.9375rem; font-weight: 550; }
+.chapter-nav .next { grid-column: 2; text-align: right; }
+
+/* heading permalinks */
+.anchor {
+  margin-left: 0.35em;
+  color: var(--fg-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .anchor, h3:hover .anchor, h4:hover .anchor,
+h2:focus-within .anchor, h3:focus-within .anchor { opacity: 1; }
+@media (hover: none) { .anchor { opacity: 0.5; } }
+
+/* skip link */
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0.6rem 1rem;
+  z-index: 100;
+  border: 1px solid var(--accent);
+  border-radius: 0 0 6px 0;
+}
+.skip:focus { left: 0; }
+
+/* ── search ───────────────────────────────────────────────────────────────── */
+
+dialog#search {
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  width: min(38rem, 92vw);
+  padding: 0;
+  margin-top: 12vh;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.22);
+}
+dialog#search::backdrop { background: rgb(0 0 0 / 0.35); }
+dialog#search input {
+  width: 100%;
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  color: var(--fg);
+  outline: none;
+}
+#search-results { list-style: none; margin: 0; padding: 0.4rem; max-height: 55vh; overflow-y: auto; }
+#search-results li a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+}
+#search-results li a:hover, #search-results li a:focus { background: var(--accent-bg); }
+#search-results .where { display: block; font-size: 0.75rem; color: var(--fg-faint); }
+#search-results .ctx { display: block; font-size: 0.8125rem; color: var(--fg-muted); margin-top: 0.15rem; }
+
+/* ── cover / index page ───────────────────────────────────────────────────── */
+
+.cover { grid-column: text; }
+.cover h1 { font-size: clamp(2.4rem, 1.8rem + 2.4vw, 3.4rem); margin-bottom: 0.25em; }
+.cover .subtitle { font-size: 1.25rem; color: var(--fg-muted); margin-bottom: 2rem; }
+.contents { list-style: none; padding: 0; margin: 2rem 0 0; counter-reset: ch; }
+.contents li { border-top: 1px solid var(--rule); }
+.contents li:last-child { border-bottom: 1px solid var(--rule); }
+.contents a {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.85rem 0.25rem;
+  text-decoration: none;
+  color: var(--fg);
+}
+.contents a:hover { background: var(--bg-raised); }
+.contents .n {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-faint);
+  font-size: 0.875rem;
+  min-width: 2rem;
+}
+.contents .t { font-weight: 550; }
+.contents .blurb { display: block; font-size: 0.875rem; color: var(--fg-muted); font-weight: 400; margin-top: 0.15rem; }
+
+/* ── responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .shell { grid-template-columns: [nav] var(--rail-left) [gutter] 2rem [text] minmax(0, var(--measure)) [end]; }
+  .sidenote, .marginnote {
+    float: none;
+    width: auto;
+    margin: 1em 0;
+    display: block;
+    padding: 0.7rem 0.9rem;
+    border-left: 3px solid var(--rule-strong);
+    background: var(--bg-raised);
+    border-radius: 0 6px 6px 0;
+  }
+  .fullwidth { grid-column: text; }
+}
+
+@media (max-width: 860px) {
+  :root { --header-h: 3rem; }
+  .shell { grid-template-columns: minmax(0, 1fr); padding: 1.5rem 1.15rem 5rem; }
+  main, .cover { grid-column: 1; }
+  .toc {
+    grid-column: 1;
+    position: static;
+    max-height: none;
+    margin-bottom: 2rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    background: var(--bg-raised);
+  }
+  .chapter-nav { grid-template-columns: 1fr; }
+  .chapter-nav .next { grid-column: 1; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── single-file build ────────────────────────────────────────────────────── */
+
+.book-single .chapter {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 1400px;
+}
+.book-single .chapter:nth-of-type(-n+2) { content-visibility: visible; }
+.book-single .chapter + .chapter { margin-top: 5rem; padding-top: 3rem; border-top: 1px solid var(--rule); }
+
+/* ── print ────────────────────────────────────────────────────────────────── */
+
+@media print {
+  @page { size: A4; margin: 18mm; }
+  :root { --bg: #fff; --fg: #000; --bg-code: #f4f4f4; --bg-raised: #fafafa; }
+  body { font-size: 11pt; background: #fff; color: #000; }
+  .masthead, .toc, .chapter-nav, .anchor, button.copy, #progress, dialog, .skip { display: none !important; }
+  .shell { display: block; padding: 0; max-width: none; }
+  main { grid-column: auto; max-width: none; }
+  p, li { orphans: 3; widows: 3; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  figure, table, pre, blockquote, .callout, .orient { break-inside: avoid; }
+  details { border: 1px solid #ccc; }
+  details > :not(summary) { display: block !important; }
+  .sidenote, .marginnote {
+    float: none; display: block; width: auto; margin: 0.6em 0 0.6em 1.5em;
+    font-size: 9pt; border-left: 2px solid #ccc; padding-left: 0.7em;
+  }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8.5pt; color: #444; word-break: break-all; }
+  .book-single .chapter { content-visibility: visible; break-before: page; }
+}
+
+</style>
+
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <span class="crumb"><a href="#top">A Regex Engine From Scratch</a> &nbsp;›&nbsp; Complete</span>
+  <span class="spacer"></span>
+  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
+  <button id="theme-toggle" type="button">Auto</button>
+</header>
+<div id="progress"></div>
+<div class="shell book-single" id="top">
+<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+<li><a href="#ch01-matching-by-hand"><span class="chap-num">1</span>Matching by Hand</a>
+<ol class="sub">
+<li><a href="#the-smallest-language-worth-building">The smallest language worth building</a></li>
+<li><a href="#matching-recursively">Matching, recursively</a></li>
+<li><a href="#adding-the-star">Adding the star</a></li>
+<li><a href="#why-this-gets-slow">Why this gets slow</a></li>
+<li><a href="#practice">Practice</a></li>
+<li><a href="#what-to-remember">What to remember</a></li>
+<li><a href="#next">Next</a></li>
+</ol>
+</li>
+<li><a href="#ch02-pattern-to-machine"><span class="chap-num">2</span>From Pattern to Machine</a>
+<ol class="sub">
+<li><a href="#warm-up">Warm-up</a></li>
+<li><a href="#parsing-in-one-pass">Parsing, in one pass</a></li>
+<li><a href="#the-machine">The machine</a></li>
+<li><a href="#thompsons-construction">Thompson&#x27;s construction</a></li>
+<li><a href="#the-size-guarantee">The size guarantee</a></li>
+<li><a href="#an-error-the-parser-should-reject">An error the parser should reject</a></li>
+<li><a href="#practice-2">Practice</a></li>
+<li><a href="#what-to-remember-2">What to remember</a></li>
+<li><a href="#next-2">Next</a></li>
+</ol>
+</li>
+<li><a href="#ch03-all-paths-at-once"><span class="chap-num">3</span>All Paths at Once</a>
+<ol class="sub">
+<li><a href="#warm-up-2">Warm-up</a></li>
+<li><a href="#the-idea">The idea</a></li>
+<li><a href="#the-simulator">The simulator</a></li>
+<li><a href="#the-payoff">The payoff</a></li>
+<li><a href="#what-we-gave-up">What we gave up</a></li>
+<li><a href="#practice-3">Practice</a></li>
+<li><a href="#what-to-remember-3">What to remember</a></li>
+<li><a href="#where-to-go-next">Where to go next</a></li>
+</ol>
+</li>
+</ol></nav>
+<main id="main">
+<h1>A Regex Engine From Scratch</h1>
+<p class="subtitle">Building a working matcher in 200 lines of Python, and understanding why it is fast</p>
+<section class="chapter" id="ch01-matching-by-hand">
+<h1 id="chapter-1-matching-by-hand">Chapter 1: Matching by Hand</h1>
+
+<p><span class="newthought">Here is a regular expression</span> that will hang your program. Not for a long time — forever, on a modern machine, for an input of about thirty characters.</p>
+
+<figure class="listing" id="listing-1-1">
+<figcaption class="bar">
+<span class="file">code/pathological.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">import re
+
+pattern = re.compile(r&quot;(a+)+b&quot;)
+<span class="hl-line">print(pattern.match(&quot;aaaaaaaaaaaaaaaaaaaaaab&quot;) is not None)</span></code></pre>
+<figcaption class="caption"><span class="num">Listing 1-1.</span> Innocent-looking, and catastrophic.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>True</pre></div>
+
+<p>That one returns quickly. Remove the final <code>b</code> so the match must fail, and Python's engine explores every way of splitting the <code>a</code>s between the inner and outer group before it gives up. Each additional <code>a</code> doubles the work.</p>
+
+<div class="orient">
+<h3>What you'll learn</h3>
+<ul>
+<li>Match a small regex language by hand, with nothing but recursion</li>
+<li>Explain why backtracking engines have a worst case that is exponential</li>
+<li>Read a regex as a structure rather than as a string of punctuation</li>
+</ul>
+<h3>Assumes you know</h3>
+<p>Python functions, recursion, and slicing. No automata theory — that arrives in
+chapter 2, once you have felt why it is needed.</p>
+<p class="meta">~25 min · 4 exercises</p>
+</div>
+
+<h2 id="the-smallest-language-worth-building">The smallest language worth building<a class="anchor" href="#the-smallest-language-worth-building" aria-label="Link to this section">#</a></h2>
+
+<p>Real regex syntax is enormous, and almost none of it is interesting. We will implement four constructs, which is enough to be genuinely useful and small enough to hold in your head:</p>
+
+<div class="table-wrap"><table><thead><tr><th>Syntax</th><th>Meaning</th></tr></thead><tbody><tr><td><code>a</code></td><td>the literal character <code>a</code></td></tr><tr><td><code>.</code></td><td>any single character</td></tr><tr><td><code>ab</code></td><td>concatenation: <code>a</code> then <code>b</code></td></tr><tr><td><code>a*</code></td><td>zero or more <code>a</code></td></tr></tbody></table></div>
+
+<p>No alternation yet, no <code>+</code>, no character classes. We add alternation in chapter 2, where it costs almost nothing; here it would double the code for one idea.</p>
+
+<h2 id="matching-recursively">Matching, recursively<a class="anchor" href="#matching-recursively" aria-label="Link to this section">#</a></h2>
+
+<p>The whole matcher is one insight: <strong><code>match(pattern, text)</code> asks whether the pattern consumes some prefix of the text, and the pattern's first element decides what to try next.</strong></p>
+
+<p>Start with the case that has no star in it.</p>
+
+<figure class="listing" id="listing-1-2">
+<figcaption class="bar">
+<span class="file">code/simple.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def match_here(pattern, text):
+    if not pattern:
+        return True
+    if pattern[0] == &quot;.&quot; or (text and pattern[0] == text[0]):
+        return match_here(pattern[1:], text[1:])
+    return False
+
+print(match_here(&quot;a.c&quot;, &quot;abc&quot;), match_here(&quot;a.c&quot;, &quot;axc&quot;), match_here(&quot;a.c&quot;, &quot;ab&quot;))</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-2.</span> Literal and dot matching, without repetition.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>True True False</pre></div>
+
+<ol class="annot">
+<li>An empty pattern matches anything, including the empty string. This is the base case, and getting it wrong is the most common bug in a first attempt.</li>
+<li><code>text and</code> guards the index: a pattern that still has characters left cannot match text that has run out.</li>
+<li>Both branches recurse on <em>both</em> tails, because one pattern element consumed exactly one text character.</li>
+</ol>
+
+<details>
+<summary>Predict: what does <code>match_here("", "abc")</code> return, and is that right?</summary>
+
+<p><code>True</code>. The empty pattern matched the empty prefix of <code>"abc"</code>
+and stopped. That is correct for a <em>prefix</em> matcher, which is what we are
+building — it answers "does this pattern start here?", not "does it consume
+everything?". Anchoring to the end is exercise 3.</p>
+
+</details>
+
+<h2 id="adding-the-star">Adding the star<a class="anchor" href="#adding-the-star" aria-label="Link to this section">#</a></h2>
+
+<p><code>a*</code> is where the difficulty lives, because it is the first construct that does not consume a fixed amount of text. The pattern element is now two characters wide, and it can match any number of characters from zero upward.</p>
+
+<p>The standard move is to try every count. Try zero first, then one, then two, and return as soon as one of them works.</p>
+
+<figure class="listing" id="listing-1-3">
+<figcaption class="bar">
+<span class="file">code/star.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def match_here(pattern, text):
+    if not pattern:
+<span class="hl-line">        return True</span>
+<span class="hl-line">    if len(pattern) &gt;= 2 and pattern[1] == &quot;*&quot;:</span>
+        return match_star(pattern[0], pattern[2:], text)
+    if pattern[0] == &quot;.&quot; or (text and pattern[0] == text[0]):
+        return match_here(pattern[1:], text[1:])
+    return False
+
+
+def match_star(c, pattern, text):
+    i = 0
+    while True:
+        if match_here(pattern, text[i:]):
+            return True
+        if i &lt; len(text) and (c == &quot;.&quot; or text[i] == c):
+            i += 1
+        else:
+            return False
+
+
+def match(pattern, text):
+    return any(match_here(pattern, text[i:]) for i in range(len(text) + 1))
+
+
+for p, t in [(&quot;a*b&quot;, &quot;aaab&quot;), (&quot;a*b&quot;, &quot;b&quot;), (&quot;a.*z&quot;, &quot;abcz&quot;), (&quot;a*b&quot;, &quot;aaac&quot;)]:
+    print(f&quot;{p!r:8} {t!r:8} {match(p, t)}&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-3.</span> The complete matcher. The star case is the whole story.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>&#x27;a*b&#x27;    &#x27;aaab&#x27;   True
+&#x27;a*b&#x27;    &#x27;b&#x27;      True
+&#x27;a.*z&#x27;   &#x27;abcz&#x27;   True
+&#x27;a*b&#x27;    &#x27;aaac&#x27;   False</pre></div>
+
+<p>Note the order inside <code>match_star</code>: it tries the <em>shortest</em> match first, growing only when the rest of the pattern fails. That makes this a lazy matcher. Real engines are greedy by default, which changes which match you get but not whether one exists.</p>
+
+<div class="callout">
+<div class="title">This trips people up</div>
+<p><code>match_star</code> checks <code>match_here(pattern, ...)</code> — the pattern
+<em>after</em> the star, not including it. Passing the full pattern is the classic
+error, and it produces infinite recursion rather than a wrong answer, which at least
+fails loudly.</p>
+</div>
+
+<h2 id="why-this-gets-slow">Why this gets slow<a class="anchor" href="#why-this-gets-slow" aria-label="Link to this section">#</a></h2>
+
+<p>The matcher above is correct and short. It is also, on some inputs, unusable.</p>
+
+<p>Consider <code>a*a*a*b</code> against a string of <code>a</code>s with no <code>b</code>. Every <code>a</code> in the text can be claimed by the first star, the second, or the third. The matcher tries every assignment before it can conclude failure.</p>
+
+<p>Measure it rather than trusting the claim. The block below doubles the input twice and prints the cost each time.</p>
+
+<figure class="listing" id="listing-1-4">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">import time
+
+for n in (10, 20, 40, 60):
+    text = &quot;a&quot; * n
+    start = time.perf_counter()
+    match(&quot;a*a*a*b&quot;, text)
+    print(f&quot;n={n:3}  {(time.perf_counter() - start) * 1000:9.2f} ms&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-4.</span> Cost against input length, at a fixed three stars.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>n= 10       0.20 ms
+n= 20       1.90 ms
+n= 40      22.57 ms
+n= 60     104.08 ms</pre></div>
+
+<p>Doubling the input from 20 to 40 does not double the time; it multiplies it by roughly twelve. That is the signature of a polynomial with a degree above one. Add a fourth star and the same doubling costs about twenty times more, because the degree of the polynomial is set by <em>how many stars can compete for the same character</em>, not by the length of the input.</p>
+
+<figure>
+<svg viewBox="0 0 800 208" role="img" aria-labelledby="dia-1-1-title">
+  <title id="dia-1-1-title">Three stars dividing a run of six a-characters, showing the many ways the same input can be split between them</title>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-muted)">
+    <text x="24" y="32">One input. Every division of it is a path the matcher must try.</text>
+  </g>
+  <g font-family="var(--font-code)" font-size="15" fill="var(--dia-fg)">
+    <text x="24" y="88">a a a a a a</text>
+    <text x="24" y="136">a a a a a a</text>
+    <text x="24" y="184">a a a a a a</text>
+  </g>
+  <g stroke="var(--dia-accent)" stroke-width="2.5" fill="none">
+    <path d="M 132 72 L 132 96"/><path d="M 168 72 L 168 96"/>
+    <path d="M 60 120 L 60 144"/><path d="M 204 120 L 204 144"/>
+    <path d="M 96 168 L 96 192"/><path d="M 132 168 L 132 192"/>
+  </g>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-muted)">
+    <text x="264" y="88">3 / 1 / 2</text>
+    <text x="264" y="136">1 / 4 / 1</text>
+    <text x="264" y="184">2 / 1 / 3</text>
+    <text x="420" y="136">…and 25 more</text>
+  </g>
+</svg>
+<figcaption>Figure 1-1. With three stars and six characters there are 28 divisions.
+The count grows as a polynomial whose degree is the number of competing stars.</figcaption>
+</figure>
+
+<p>Our four-construct language cannot do worse than polynomial, because it has no way to nest one repetition inside another. Real regex syntax can, and that is where the genuinely exponential case lives — the <code>(a+)+b</code> from the opening of this chapter. The outer <code>+</code> repeats a group that itself repeats, so the number of paths doubles with each added character rather than growing polynomially.<label for="sn-1-1" class="margin-toggle sidenote-number"></label> <input type="checkbox" id="sn-1-1" class="margin-toggle"> <span class="sidenote">Cloudflare's global outage of 2 July 2019 was caused by a single regular expression containing nested quantifiers, deployed to their WAF. It consumed CPU across the fleet.</span></p>
+
+<p>Both failures share one cause: the matcher explores one candidate division at a time and, on failure, starts another. Nesting changes how fast the path count grows. It does not introduce the problem.</p>
+
+<h2 id="practice">Practice<a class="anchor" href="#practice" aria-label="Link to this section">#</a></h2>
+
+<div class="exercises">
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Fill the single blank so <code>match_here</code> also supports <code>?</code>
+(zero or one).</p>
+
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">if len(pattern) &gt;= 2 and pattern[1] == &quot;?&quot;:
+    if pattern[0] == &quot;.&quot; or (text and pattern[0] == text[0]):
+        if match_here(pattern[2:], text[1:]):
+            return True
+    return ____</code></pre>
+</figure>
+
+<details><summary>Solution</summary>
+<p><code>match_here(pattern[2:], text)</code> — the zero-occurrence branch. Order
+matters: trying the one-occurrence branch first makes <code>?</code> greedy, which is
+what every real engine does.</p>
+</details>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Add <code>^</code> anchoring. Complete the stub.</p>
+
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def match(pattern, text):
+    if pattern.startswith(&quot;^&quot;):
+        return ____
+    return any(match_here(pattern, text[i:]) for i in range(len(text) + 1))</code></pre>
+</figure>
+
+<details><summary>Solution</summary>
+<p><code>match_here(pattern[1:], text)</code>. An anchored pattern tries position zero
+only, which is why anchoring a slow pattern often makes it fast — it removes the outer
+loop over starting positions, though not the inner exponential blowup.</p>
+</details>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Write <code>full_match(pattern, text)</code> from scratch: true only if the pattern
+consumes the entire text. Do not modify <code>match_here</code>.</p>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Transfer: unmemoized recursive Fibonacci has the same shape as <code>(a+)+</code>,
+and counting coin-change combinations has the same shape as <code>a*a*a*</code>. Say
+in one sentence what distinguishes the two shapes, before reading chapter 2.</p>
+</div>
+
+</div>
+
+<h2 id="what-to-remember">What to remember<a class="anchor" href="#what-to-remember" aria-label="Link to this section">#</a></h2>
+
+<ul>
+<li>A pattern element decides what to try next; matching is recursion over both the pattern and the text</li>
+<li>An empty pattern matches successfully, and that base case carries the whole recursion</li>
+<li>The star case tries every repetition count, and that is where the cost lives</li>
+<li>Stars competing for the same characters give polynomial cost, with the degree set by how many compete</li>
+<li>Nested repetition, which our language cannot express, is what makes the cost exponential</li>
+<li>Both are properties of the <em>search strategy</em>, not of regular expressions themselves</li>
+</ul>
+
+<p><strong>Terms introduced:</strong> backtracking, anchoring, greedy and lazy matching, nested quantifier, catastrophic backtracking.</p>
+
+<h2 id="next">Next<a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
+
+<p>The exponential cost comes from exploring one path at a time and starting over on failure. What if the matcher could be in several states at once?</p>
+</section>
+<section class="chapter" id="ch02-pattern-to-machine">
+<h1 id="chapter-2-from-pattern-to-machine">Chapter 2: From Pattern to Machine</h1>
+
+<p><span class="newthought">The matcher in chapter 1</span> re-read the pattern string on every recursive call, deciding afresh each time whether it was looking at a literal, a dot, or a star. That is wasteful, but the real cost is structural: a string has no room to record <em>where else the matcher could be</em>. This chapter converts the pattern into something that does.</p>
+
+<div class="orient">
+<h3>What you'll learn</h3>
+<ul>
+<li>Parse the four-construct language into a tree</li>
+<li>Compile that tree into a state machine using Thompson's construction</li>
+<li>Explain why the machine has at most one state per pattern character</li>
+</ul>
+<h3>Assumes you know</h3>
+<p>Chapter 1's matcher and why it slows down. Python dataclasses and dictionaries.
+Still no automata theory.</p>
+<p class="meta">~30 min · 3 exercises</p>
+</div>
+
+<h2 id="warm-up">Warm-up<a class="anchor" href="#warm-up" aria-label="Link to this section">#</a></h2>
+
+<details>
+<summary>In chapter 1, what determined the <em>degree</em> of the polynomial — the length of the input, or something about the pattern?</summary>
+<p>Something about the pattern: the number of stars competing for the same characters.
+The input length is the base, the pattern supplies the exponent.</p>
+</details>
+
+<details>
+<summary>Why did <code>match_star</code> pass <code>pattern[2:]</code> rather than the whole pattern?</summary>
+<p>Because <code>pattern[0]</code> and the <code>*</code> have both been accounted for
+by <code>match_star</code> itself. Passing the whole pattern recurses on the same
+input forever.</p>
+</details>
+
+<h2 id="parsing-in-one-pass">Parsing, in one pass<a class="anchor" href="#parsing-in-one-pass" aria-label="Link to this section">#</a></h2>
+
+<p>Our language has four constructs and one precedence rule: <code>*</code> binds tighter than concatenation. That is small enough for a recursive descent parser of about thirty lines. We add alternation with <code>|</code>, which binds loosest, because it costs one function.</p>
+
+<figure class="listing" id="listing-2-1">
+<figcaption class="bar">
+<span class="file">code/parse.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">from dataclasses import dataclass
+
+
+@dataclass
+class Char:  c: str
+@dataclass
+class Dot:   pass
+@dataclass
+class Star:  inner: object
+@dataclass
+class Cat:   left: object; right: object
+@dataclass
+class Alt:   left: object; right: object
+
+
+class Parser:
+    def __init__(self, src):
+        self.src, self.i = src, 0
+
+    def peek(self):
+        return self.src[self.i] if self.i &lt; len(self.src) else None
+
+    def parse(self):
+        node = self.alternation()
+        if self.i != len(self.src):
+            raise SyntaxError(f&quot;unexpected {self.peek()!r} at {self.i}&quot;)
+        return node
+
+    def alternation(self):
+        node = self.concatenation()
+        while self.peek() == &quot;|&quot;:
+            self.i += 1
+            node = Alt(node, self.concatenation())
+        return node
+
+    def concatenation(self):
+        node = None
+        while self.peek() not in (None, &quot;|&quot;, &quot;)&quot;):
+            atom = self.repeat()
+            node = atom if node is None else Cat(node, atom)
+        return node
+
+    def repeat(self):
+        node = self.atom()
+        while self.peek() == &quot;*&quot;:
+            self.i += 1
+            node = Star(node)
+        return node
+
+    def atom(self):
+        c = self.peek()
+        if c == &quot;(&quot;:
+            self.i += 1
+            node = self.alternation()
+            if self.peek() != &quot;)&quot;:
+                raise SyntaxError(&quot;unclosed (&quot;)
+            self.i += 1
+            return node
+        self.i += 1
+        return Dot() if c == &quot;.&quot; else Char(c)
+
+
+print(Parser(&quot;a*b&quot;).parse())
+print(Parser(&quot;a|b&quot;).parse())</code></pre>
+<figcaption class="caption"><span class="num">Listing 2-1.</span> A recursive descent parser producing a small tree.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>Cat(left=Star(inner=Char(c=&#x27;a&#x27;)), right=Char(c=&#x27;b&#x27;))
+Alt(left=Char(c=&#x27;a&#x27;), right=Char(c=&#x27;b&#x27;))</pre></div>
+
+<ol class="annot">
+<li>Each precedence level is one method, calling the level below it. Alternation calls concatenation, which calls repeat, which calls atom. The call stack <em>is</em> the precedence table.</li>
+<li><code>concatenation</code> stops at <code>|</code> and <code>)</code> because those belong to a level above it, not to itself.</li>
+<li><code>repeat</code> loops rather than recursing, so <code>a**</code> parses without nesting the stack.</li>
+</ol>
+
+<p>An empty alternative parses to <code>None</code>, which is the correct representation of "matches the empty string" and will compile to a machine that consumes nothing.</p>
+
+<div class="callout">
+<div class="title">This trips people up</div>
+<p>Parsing <code>*</code> inside <code>atom</code> rather than in its own level makes
+<code>ab*</code> mean <code>(ab)*</code>. Precedence bugs of this kind produce a parser
+that works on every example you happen to try and is wrong on the fifth one a reader
+tries. Test <code>ab*</code> against <code>"abbb"</code> and <code>"abab"</code>.</p>
+</div>
+
+<h2 id="the-machine">The machine<a class="anchor" href="#the-machine" aria-label="Link to this section">#</a></h2>
+
+<p>A state machine, for our purposes, is a set of numbered states. Each state is one of three things:</p>
+
+<div class="table-wrap"><table><thead><tr><th>State kind</th><th>Meaning</th></tr></thead><tbody><tr><td><code>Consume(c, next)</code></td><td>if the current input character is <code>c</code> (or anything, for a dot), move to <code>next</code></td></tr><tr><td><code>Split(a, b)</code></td><td>move to <strong>both</strong> <code>a</code> and <code>b</code>, without consuming input</td></tr><tr><td><code>Match</code></td><td>success</td></tr></tbody></table></div>
+
+<p><code>Split</code> is the entire idea. It is what a string pattern could not express: the representation now has a way to say "the matcher is in two places at once", which is what chapter 3 will exploit.</p>
+
+<figure>
+<svg viewBox="0 0 800 176" role="img" aria-labelledby="dia-2-1-title">
+  <title id="dia-2-1-title">The machine for a-star-b: a split state leading either into a loop consuming a, or forward to consume b</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dia-muted)"/>
+    </marker>
+  </defs>
+  <g fill="var(--dia-fill)" stroke="var(--dia-fg)" stroke-width="1.5">
+    <circle cx="120" cy="104" r="26"/>
+    <circle cx="360" cy="104" r="26"/>
+    <circle cx="600" cy="104" r="26"/>
+  </g>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-fg)"
+     text-anchor="middle" dominant-baseline="middle">
+    <text x="120" y="104">split</text>
+    <text x="360" y="104">'a'</text>
+    <text x="600" y="104">'b'</text>
+    <text x="712" y="104">match</text>
+  </g>
+  <g stroke="var(--dia-muted)" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+    <path d="M 146 104 L 330 104"/>
+    <path d="M 146 116 L 570 116"/>
+    <path d="M 626 104 L 676 104"/>
+    <path d="M 360 78 C 360 32, 120 32, 120 76"/>
+  </g>
+  <g font-family="var(--font-ui)" font-size="12" fill="var(--dia-muted)" text-anchor="middle">
+    <text x="240" y="96">take one more</text>
+    <text x="300" y="134">or stop here</text>
+  </g>
+</svg>
+<figcaption>Figure 2-1. The machine for <code>a*b</code>. The split has no input
+condition: both of its arrows are always available.</figcaption>
+</figure>
+
+<h2 id="thompsons-construction">Thompson's construction<a class="anchor" href="#thompsons-construction" aria-label="Link to this section">#</a></h2>
+
+<p>Compiling the tree is one function per node type, and each one returns a fragment: a start state, plus a list of dangling arrows waiting to be pointed somewhere.</p>
+
+<figure class="listing" id="listing-2-2">
+<figcaption class="bar">
+<span class="file">code/compile.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">CONSUME, SPLIT, MATCH = &quot;consume&quot;, &quot;split&quot;, &quot;match&quot;
+
+
+class Program:
+    def __init__(self):
+        self.states = []
+
+    def emit(self, kind, **kw):
+        self.states.append({&quot;kind&quot;: kind, **kw})
+        return len(self.states) - 1
+
+    def __len__(self):
+        return len(self.states)
+
+
+def compile_node(node, prog, cont):
+    &quot;&quot;&quot;Emit states for `node`, continuing to state index `cont`. Returns the entry.&quot;&quot;&quot;
+    if node is None:
+        return cont
+    if isinstance(node, Char):
+        return prog.emit(CONSUME, c=node.c, next=cont)
+    if isinstance(node, Dot):
+        return prog.emit(CONSUME, c=None, next=cont)
+    if isinstance(node, Cat):
+        right = compile_node(node.right, prog, cont)
+        return compile_node(node.left, prog, right)
+    if isinstance(node, Alt):
+        a = compile_node(node.left, prog, cont)
+        b = compile_node(node.right, prog, cont)
+        return prog.emit(SPLIT, a=a, b=b)
+    if isinstance(node, Star):
+        split = prog.emit(SPLIT, a=cont, b=cont)      # placeholder, patched below
+        body = compile_node(node.inner, prog, split)
+        prog.states[split][&quot;a&quot;] = body
+        prog.states[split][&quot;b&quot;] = cont
+        return split
+    raise TypeError(node)
+
+
+def compile_pattern(src):
+    prog = Program()
+    match_state = prog.emit(MATCH)
+    entry = compile_node(Parser(src).parse(), prog, match_state)
+    return prog, entry
+
+
+prog, entry = compile_pattern(&quot;a*b&quot;)
+for i, s in enumerate(prog.states):
+    print(i, s, &quot;&lt;-- entry&quot; if i == entry else &quot;&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 2-2.</span> Compiling the tree into a flat list of states.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>0 {&#x27;kind&#x27;: &#x27;match&#x27;} 
+1 {&#x27;kind&#x27;: &#x27;consume&#x27;, &#x27;c&#x27;: &#x27;b&#x27;, &#x27;next&#x27;: 0} 
+2 {&#x27;kind&#x27;: &#x27;split&#x27;, &#x27;a&#x27;: 3, &#x27;b&#x27;: 1} &lt;-- entry
+3 {&#x27;kind&#x27;: &#x27;consume&#x27;, &#x27;c&#x27;: &#x27;a&#x27;, &#x27;next&#x27;: 2} </pre></div>
+
+<p>Read state 2: it offers state 3 (consume an <code>a</code>, then come back to the split) or state 1 (consume the <code>b</code> and finish). That is <code>a*b</code>, and it is four states.</p>
+
+<details>
+<summary>Predict: how many states does <code>a*a*a*b</code> compile to?</summary>
+
+<p>Seven: one <code>match</code>, one <code>consume</code> for the <code>b</code>, and
+a split plus a consume for each of the three stars. Compare that with chapter 1, where
+the same pattern produced a search tree with tens of thousands of nodes. The machine
+does not grow with the input at all.</p>
+
+</details>
+
+<p>Compiling backwards — passing in the continuation and returning the entry — is what avoids the dangling-arrow bookkeeping that Thompson's original formulation needs. The star case still needs one patch, because its body must loop back to a state that does not exist until the body has been compiled.</p>
+
+<h2 id="the-size-guarantee">The size guarantee<a class="anchor" href="#the-size-guarantee" aria-label="Link to this section">#</a></h2>
+
+<p>The property that matters for chapter 3:</p>
+
+<figure class="listing" id="listing-2-3">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">for stars in range(1, 7):
+    src = &quot;a*&quot; * stars + &quot;b&quot;
+    prog, _ = compile_pattern(src)
+    print(f&quot;{src:16} {len(src):&gt;3} chars -&gt; {len(prog):&gt;3} states&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 2-3.</span> State count against pattern length, for a family of patterns.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>a*b                3 chars -&gt;   4 states
+a*a*b              5 chars -&gt;   6 states
+a*a*a*b            7 chars -&gt;   8 states
+a*a*a*a*b          9 chars -&gt;  10 states
+a*a*a*a*a*b       11 chars -&gt;  12 states
+a*a*a*a*a*a*b     13 chars -&gt;  14 states</pre></div>
+
+<p>One state per pattern character, plus one. Thompson's construction has this property for every pattern in the language, and it is what makes the next chapter's simulation possible: a set of active states can never be larger than the pattern.</p>
+
+<h2 id="an-error-the-parser-should-reject">An error the parser should reject<a class="anchor" href="#an-error-the-parser-should-reject" aria-label="Link to this section">#</a></h2>
+
+<figure class="listing" id="listing-2-4">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag error-demo">error demo</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">Parser(&quot;(ab&quot;).parse()</code></pre>
+<figcaption class="caption"><span class="num">Listing 2-4.</span> An unclosed group is rejected, and stays rejected.</figcaption>
+</figure>
+
+<p>The block above is checked on every build: it must fail, and its message must still mention the unclosed group. Here is that message on its own, without the traceback.</p>
+
+<figure class="listing" id="listing-2-5">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">for bad in [&quot;(ab&quot;, &quot;a)b&quot;, &quot;a**&quot;]:
+    try:
+        Parser(bad).parse()
+        print(f&quot;{bad!r:6} accepted&quot;)
+    except SyntaxError as e:
+        print(f&quot;{bad!r:6} rejected: {e}&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 2-5.</span> The error a caller actually sees.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>&#x27;(ab&#x27;  rejected: unclosed (
+&#x27;a)b&#x27;  rejected: unexpected &#x27;)&#x27; at 1
+&#x27;a**&#x27;  accepted</pre></div>
+
+<p>Failing here is worth some care. A matcher that accepts a malformed pattern and silently treats <code>(</code> as a literal will produce wrong answers on correct-looking input, which is far harder to debug than a parse error.</p>
+
+<h2 id="practice-2">Practice<a class="anchor" href="#practice-2" aria-label="Link to this section">#</a></h2>
+
+<div class="exercises">
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Fill the blank so <code>+</code> (one or more) compiles correctly, reusing what you
+already have.</p>
+
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">if isinstance(node, Plus):
+    return compile_node(____, prog, cont)</code></pre>
+</figure>
+
+<details><summary>Solution</summary>
+<p><code>Cat(node.inner, Star(node.inner))</code>. Desugaring in the compiler rather
+than adding a state kind keeps the simulator in chapter 3 unchanged — the fewer state
+kinds it has to know about, the simpler it stays.</p>
+</details>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Add <code>?</code> to the parser and compiler. Two lines each.</p>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Transfer: <code>compile_node</code> takes a continuation and returns an entry
+point. Name one other place you have seen that shape.</p>
+
+<details><summary>One answer</summary>
+<p>Continuation-passing style generally; also the way a code generator emits a jump
+target before the code that jumps to it. Both share the trick of deciding "where do I
+go when I'm done" before emitting the work.</p>
+</details>
+</div>
+
+</div>
+
+<h2 id="what-to-remember-2">What to remember<a class="anchor" href="#what-to-remember-2" aria-label="Link to this section">#</a></h2>
+
+<ul>
+<li>A recursive descent parser encodes precedence in its call stack: one method per level</li>
+<li><code>Split</code> is the construct a pattern string cannot express, and it is why the machine is more powerful than the string</li>
+<li>Compiling backwards, with the continuation passed in, removes most of the arrow-patching</li>
+<li>Only the star case needs a patch, because its body loops back to itself</li>
+<li>The machine has one state per pattern character, and that bound holds for every pattern</li>
+</ul>
+
+<p><strong>Terms introduced:</strong> recursive descent, precedence level, continuation, Thompson's construction, fragment, state machine.</p>
+
+<h2 id="next-2">Next<a class="anchor" href="#next-2" aria-label="Link to this section">#</a></h2>
+
+<p>We have a machine with a <code>Split</code> state that says "go both ways". Chapter 1 went one way and backtracked. What happens if we go both ways at once?</p>
+</section>
+<section class="chapter" id="ch03-all-paths-at-once">
+<h1 id="chapter-3-all-paths-at-once">Chapter 3: All Paths at Once</h1>
+
+<p><span class="newthought">Chapter 1's matcher</span> committed to one interpretation of the pattern and unwound when it failed. Chapter 2 built a machine whose <code>Split</code> states say "go both ways" without saying which way first. This chapter takes that literally: instead of choosing, we keep every possibility alive simultaneously.</p>
+
+<div class="orient">
+<h3>What you'll learn</h3>
+<ul>
+<li>Simulate a state machine on a set of states rather than a single state</li>
+<li>Explain why the running time is the product of two bounded quantities</li>
+<li>Measure the difference against chapter 1 on the same pathological input</li>
+</ul>
+<h3>Assumes you know</h3>
+<p>Chapter 2's compiler and its state kinds. Chapter 1's timing experiment, which this
+chapter repeats for comparison.</p>
+<p class="meta">~30 min · 4 exercises</p>
+</div>
+
+<h2 id="warm-up-2">Warm-up<a class="anchor" href="#warm-up-2" aria-label="Link to this section">#</a></h2>
+
+<details>
+<summary>Chapter 2 measured states against pattern length. What was the relationship?</summary>
+<p>One state per pattern character, plus one for <code>match</code>. Linear, and it
+does not depend on the input at all.</p>
+</details>
+
+<details>
+<summary>Chapter 1: why did anchoring a pattern with <code>^</code> make it faster without fixing the real problem?</summary>
+<p>It removed the outer loop over starting positions, dividing the work by the input
+length. The exponential or high-degree polynomial inside a single starting position
+was untouched.</p>
+</details>
+
+<h2 id="the-idea">The idea<a class="anchor" href="#the-idea" aria-label="Link to this section">#</a></h2>
+
+<p>Hold a <strong>set</strong> of states the machine could currently be in. For each input character, compute the set it could be in next. Accept if the <code>match</code> state is ever in the set.</p>
+
+<p>Two rules make it work:</p>
+
+<ol>
+<li>A <code>split</code> state is not a place you can be. Whenever a split enters the set, replace it with both of its targets, recursively. This is the <em>closure</em>.</li>
+<li>Each input character is consumed once, by every <code>consume</code> state in the set at the same time.</li>
+</ol>
+
+<p>Because the set is a set, a state that could be reached by two different paths appears once. That deduplication is the whole reason the cost collapses: chapter 1 explored those two paths separately and paid for both.</p>
+
+<figure>
+<svg viewBox="0 0 800 224" role="img" aria-labelledby="dia-3-1-title">
+  <title id="dia-3-1-title">Two columns of states: backtracking explores paths one at a time, simulation carries a set of states forward through each input character</title>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-muted)">
+    <text x="24" y="28">Backtracking: one path at a time, restart on failure</text>
+    <text x="24" y="140">Simulation: one set of states, one pass</text>
+  </g>
+  <g stroke="var(--dia-muted)" stroke-width="1.5" fill="none">
+    <path d="M 32 56 L 128 88"/><path d="M 32 56 L 128 56"/><path d="M 32 56 L 128 24"/>
+    <path d="M 128 88 L 224 104"/><path d="M 128 88 L 224 72"/>
+    <path d="M 128 56 L 224 56"/><path d="M 128 24 L 224 40"/><path d="M 128 24 L 224 8"/>
+  </g>
+  <g fill="var(--dia-warn)"><circle cx="224" cy="104" r="4"/><circle cx="224" cy="72" r="4"/>
+     <circle cx="224" cy="56" r="4"/><circle cx="224" cy="40" r="4"/><circle cx="224" cy="8" r="4"/></g>
+  <g fill="var(--dia-fill)" stroke="var(--dia-accent)" stroke-width="2.5">
+    <rect x="32" y="160" width="88" height="48" rx="4"/>
+    <rect x="200" y="160" width="88" height="48" rx="4"/>
+    <rect x="368" y="160" width="88" height="48" rx="4"/>
+    <rect x="536" y="160" width="88" height="48" rx="4"/>
+  </g>
+  <g font-family="var(--font-ui)" font-size="12" fill="var(--dia-fg)"
+     text-anchor="middle" dominant-baseline="middle">
+    <text x="76" y="184">{0,2,3}</text><text x="244" y="184">{1,2,3}</text>
+    <text x="412" y="184">{1,2,3}</text><text x="580" y="184">{0,1}</text>
+  </g>
+  <g stroke="var(--dia-accent)" stroke-width="2.5" fill="none">
+    <path d="M 120 184 L 194 184"/><path d="M 288 184 L 362 184"/><path d="M 456 184 L 530 184"/>
+  </g>
+  <g font-family="var(--font-code)" font-size="12" fill="var(--dia-muted)" text-anchor="middle">
+    <text x="157" y="176">a</text><text x="325" y="176">a</text><text x="493" y="176">b</text>
+  </g>
+</svg>
+<figcaption>Figure 3-1. The lower row visits each input character exactly once. The set
+never grows beyond the number of states in the machine.</figcaption>
+</figure>
+
+<h2 id="the-simulator">The simulator<a class="anchor" href="#the-simulator" aria-label="Link to this section">#</a></h2>
+
+<figure class="listing" id="listing-3-1">
+<figcaption class="bar">
+<span class="file">code/simulate.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def add_state(prog, i, current, seen):
+<span class="hl-line">    &quot;&quot;&quot;Add state i to the set, expanding splits so the set holds no split states.&quot;&quot;&quot;</span>
+<span class="hl-line">    if i in seen:</span>
+<span class="hl-line">        return</span>
+<span class="hl-line">    seen.add(i)</span>
+<span class="hl-line">    state = prog.states[i]</span>
+<span class="hl-line">    if state[&quot;kind&quot;] == SPLIT:</span>
+<span class="hl-line">        add_state(prog, state[&quot;a&quot;], current, seen)</span>
+<span class="hl-line">        add_state(prog, state[&quot;b&quot;], current, seen)</span>
+    else:
+        current.add(i)
+
+
+def simulate(prog, entry, text):
+    current = set()
+    add_state(prog, entry, current, set())
+    for ch in text:
+        nxt, seen = set(), set()
+        for i in current:
+            state = prog.states[i]
+            if state[&quot;kind&quot;] == CONSUME and (state[&quot;c&quot;] is None or state[&quot;c&quot;] == ch):
+                add_state(prog, state[&quot;next&quot;], nxt, seen)
+        current = nxt
+        if not current:
+            return False
+    return any(prog.states[i][&quot;kind&quot;] == MATCH for i in current)
+
+
+def full_match(pattern, text):
+    prog, entry = compile_pattern(pattern)
+    return simulate(prog, entry, text)
+
+
+for p, t in [(&quot;a*b&quot;, &quot;aaab&quot;), (&quot;a*b&quot;, &quot;aaac&quot;), (&quot;a|b&quot;, &quot;b&quot;), (&quot;(ab)*&quot;, &quot;ababab&quot;),
+             (&quot;a.c&quot;, &quot;axc&quot;), (&quot;a*&quot;, &quot;&quot;)]:
+    print(f&quot;{p:8} {t!r:10} {full_match(p, t)}&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 3-1.</span> The complete simulator.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>a*b      &#x27;aaab&#x27;     True
+a*b      &#x27;aaac&#x27;     False
+a|b      &#x27;b&#x27;        True
+(ab)*    &#x27;ababab&#x27;   True
+a.c      &#x27;axc&#x27;      True
+a*       &#x27;&#x27;         True</pre></div>
+
+<ol class="annot">
+<li><code>seen</code> is a separate set from <code>current</code>, and it is the one that terminates the recursion. It has to be separate, because splits are traversed but never stored.</li>
+<li>Splits are expanded on entry, so the set that <code>simulate</code> iterates over contains only <code>consume</code> and <code>match</code> states — no state kind needs handling twice.</li>
+<li>A fresh <code>seen</code> per input character, because a state reachable at position 4 may need reaching again at position 5.</li>
+<li>An empty set means every path has died. Returning early is an optimisation, not a correctness requirement.</li>
+</ol>
+
+<div class="callout">
+<div class="title">This trips people up</div>
+<p>The obvious implementation checks <code>if i in current</code> and drops the
+separate <code>seen</code> set. It passes every test in this chapter, and then
+overflows the stack on <code>(a*)*</code>. The reason is that splits are never added
+to <code>current</code>, so a cycle that runs <em>through</em> splits is never
+detected — and a starred group compiles to exactly that cycle. The set that stops the
+recursion must record every state visited, not only the states you keep.</p>
+<p>This was a real bug in this chapter's first draft. It was caught because the
+build runs <code>(a*)*b</code> against two thousand characters on every pass, and a
+book that only ever tested <code>a*b</code> would have shipped it.</p>
+</div>
+
+<details>
+<summary>Predict: for <code>a*b</code>, how large can <code>current</code> get?</summary>
+
+<p>Three at most, because the machine has four states and one of them is a split that
+is never stored. In general the set is bounded by the number of states, which chapter 2
+showed is bounded by the pattern length. The input cannot make it bigger — that is the
+entire guarantee.</p>
+
+</details>
+
+<h2 id="the-payoff">The payoff<a class="anchor" href="#the-payoff" aria-label="Link to this section">#</a></h2>
+
+<p>Chapter 1 took 22 milliseconds on <code>a*a*a*b</code> against forty characters, and roughly five times that at sixty. Here is the same work, same pattern, same machine.</p>
+
+<figure class="listing" id="listing-3-2">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">import time
+
+for n in (10, 20, 40, 60, 400, 4000):
+    text = &quot;a&quot; * n
+    start = time.perf_counter()
+    full_match(&quot;a*a*a*b&quot;, text)
+    print(f&quot;n={n:5}  {(time.perf_counter() - start) * 1000:8.2f} ms&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 3-2.</span> The simulator on the input that defeated chapter 1.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>n=   10      0.02 ms
+n=   20      0.03 ms
+n=   40      0.05 ms
+n=   60      0.07 ms
+n=  400      0.40 ms
+n= 4000      3.76 ms</pre></div>
+
+<p>The time is proportional to the input length. Ten times the input costs about ten times the work, all the way up — where chapter 1 could not reach a hundred characters.</p>
+
+<p>The reason is that the work is bounded by two quantities that are both small: for each of the <em>n</em> input characters, the simulator does work proportional to the number of states <em>m</em>, which chapter 2 fixed at one per pattern character. So the cost is O(<em>nm</em>), and neither factor can surprise you.<label for="sn-3-1" class="margin-toggle sidenote-number"></label> <input type="checkbox" id="sn-3-1" class="margin-toggle"> <span class="sidenote">Ken Thompson published this construction in 1968, in a paper about compiling regular expressions to IBM 7094 machine code. The algorithm predates the backtracking engines that replaced it by about a decade.</span></p>
+
+<p>Nested quantifiers change nothing, because the machine has no nesting left in it — the compiler flattened the tree into a list of states.</p>
+
+<figure class="listing" id="listing-3-3">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">import time
+
+start = time.perf_counter()
+result = full_match(&quot;(a*)*b&quot;, &quot;a&quot; * 2000)
+print(f&quot;matched={result}  in {(time.perf_counter() - start) * 1000:.2f} ms&quot;)</code></pre>
+<figcaption class="caption"><span class="num">Listing 3-3.</span> The nested-quantifier case from chapter 1, which no backtracker survives.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>matched=False  in 1.06 ms</pre></div>
+
+<h2 id="what-we-gave-up">What we gave up<a class="anchor" href="#what-we-gave-up" aria-label="Link to this section">#</a></h2>
+
+<p>This is not a free win, and a book that pretended otherwise would be lying to you.</p>
+
+<div class="table-wrap"><table><thead><tr><th>Cost</th><th>Detail</th></tr></thead><tbody><tr><td>Capture groups</td><td>The simulator knows <em>whether</em> it matched, not <em>where</em> each group did. Recovering that needs submatch tracking, which is genuinely harder.</td></tr><tr><td>Backreferences</td><td><code>(a+)1</code> is not a regular language. No finite-state machine can express it, at any speed.</td></tr><tr><td>Lookaround</td><td>Not expressible in this model without extending the machine.</td></tr><tr><td>Greedy versus lazy</td><td>The set-based simulator has no notion of preference between paths, because it does not take paths one at a time.</td></tr></tbody></table></div>
+
+<p>Those are the reasons production engines still use backtracking. Go's <code>regexp</code>, RE2, and Rust's <code>regex</code> crate made the opposite choice: they drop backreferences and lookaround in exchange for the guarantee, which for a server parsing untrusted input is usually the better trade.</p>
+
+<h2 id="practice-3">Practice<a class="anchor" href="#practice-3" aria-label="Link to this section">#</a></h2>
+
+<div class="exercises">
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Fill the blank so <code>simulate</code> reports the length of the longest prefix
+matched, instead of a boolean.</p>
+
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">longest = -1
+for pos, ch in enumerate(text):
+    if any(prog.states[i][&quot;kind&quot;] == MATCH for i in current):
+        longest = ____
+    # ... advance current as before</code></pre>
+</figure>
+
+<details><summary>Solution</summary>
+<p><code>pos</code>. Record before consuming, because <code>current</code> describes
+the machine's state <em>before</em> character <code>pos</code> is read. Off-by-one
+errors here are the reason to write the test first.</p>
+</details>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Complete the stub so an unanchored search works, by allowing a new start at every
+position.</p>
+
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">for ch in text:
+    nxt = set()
+    add_state(prog, ____, nxt)     # a fresh start, every character
+    for i in current:
+        ...</code></pre>
+</figure>
+
+<details><summary>Solution</summary>
+<p><code>entry</code>. This is the standard trick, and it is why unanchored search
+costs no more asymptotically than anchored: the extra start states merge into the same
+set rather than multiplying the work.</p>
+</details>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>From scratch: add a <code>?</code> node to the parser, the compiler, and confirm the
+simulator needs no change at all. Explain in one sentence why it does not.</p>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Transfer: caching <code>frozenset(current)</code> to the set that follows it, per
+input character, converts this simulator into a DFA. Sketch what could go wrong with
+that cache on an adversarial pattern, and what you would bound.</p>
+</div>
+
+</div>
+
+<h2 id="what-to-remember-3">What to remember<a class="anchor" href="#what-to-remember-3" aria-label="Link to this section">#</a></h2>
+
+<ul>
+<li>A set of states replaces a choice between states, and the set deduplicates the paths backtracking pays for twice</li>
+<li>Splits are expanded on entry, so the stored set contains only states that consume input</li>
+<li>Membership must be checked before recursing, or a star loops forever</li>
+<li>The cost is O(<em>nm</em>): input length times machine size, with neither factor able to surprise you</li>
+<li>The guarantee is bought with capture groups, backreferences, and lookaround</li>
+<li>Backreferences are not slow here — they are not expressible, because the language they describe is not regular</li>
+</ul>
+
+<p><strong>Terms introduced:</strong> closure, simulation, deduplication, DFA, submatch tracking.</p>
+
+<h2 id="where-to-go-next">Where to go next<a class="anchor" href="#where-to-go-next" aria-label="Link to this section">#</a></h2>
+
+<p>The natural next step is submatch tracking: carrying, alongside each state, the input positions where each group began. Russ Cox's series on regular expression matching covers it, along with the history of how backtracking came to dominate despite Thompson's construction predating it. Go's <code>regexp</code> package and the RE2 source are both readable implementations of everything in this book, at production scale.</p>
+
+<p>What you have built is about two hundred lines and matches the asymptotic behaviour of those engines on the subset of syntax it supports. The gap between this and RE2 is features and constant factors, not the idea.</p>
+</section>
+</main>
+</div>
+<dialog id="search" aria-label="Search the book">
+  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <ul id="search-results"></ul>
+</dialog>
+<script>window.__TECHBOOK_INDEX__=[{"chapter": "Matching by Hand", "heading": "(intro)", "href": "#ch01-matching-by-hand", "text": "<span class=\"newthought\">Here is a regular expression</span> that will hang your program. Not for a long time \u2014 forever, on a modern machine, for an input of about thirty characters. import re pattern = re.compile(r\"(a+)+b\") print(pattern.match(\"aaaaaaaaaaaaaaaaaaaaaab\") is not None) That one returns quickly. Remove the final `b` so the match must fail, and Python's engine explores every way of splitting the `a`s between the inner and outer group before it gives up. Each additional `a` doubles the work. What you'll learn Match a small regex language by hand, with nothing but recursion Explain why backtracking engines have a worst case that is exponential Read a regex as a structure rather than as a string of punctuation Assumes you know Python functions, recursion, and slicing. No automata theory \u2014 that arrives in chapter 2, once you have felt why it is needed. ~25 min \u00b7 4 exer"}, {"chapter": "Matching by Hand", "heading": "The smallest language worth building", "href": "#the-smallest-language-worth-building", "text": "Real regex syntax is enormous, and almost none of it is interesting. We will implement four constructs, which is enough to be genuinely useful and small enough to hold in your head: `a` the literal character `a` `.` any single character `ab` concatenation: `a` then `b` `a*` zero or more `a` No alternation yet, no `+`, no character classes. We add alternation in chapter 2, where it costs almost nothing; here it would double the code for one idea."}, {"chapter": "Matching by Hand", "heading": "Matching, recursively", "href": "#matching-recursively", "text": "The whole matcher is one insight: **`match(pattern, text)` asks whether the pattern consumes some prefix of the text, and the pattern's first element decides what to try next.** Start with the case that has no star in it. def match_here(pattern, text): if not pattern: return True if pattern[0] == \".\" or (text and pattern[0] == text[0]): return match_here(pattern[1:], text[1:]) return False print(match_here(\"a.c\", \"abc\"), match_here(\"a.c\", \"axc\"), match_here(\"a.c\", \"ab\")) An empty pattern matches anything, including the empty string. This is the base case, and getting it wrong is the most common bug in a first attempt. text and guards the index: a pattern that still has characters left cannot match text that has run out. Both branches recurse on both tails, because one pattern element consumed exactly one text character. Predict: what does match_here(\"\", \"abc\") return, and is that right? True . The empty pattern matched the empty prefix of \"abc\" and stopped. That is correct for a prefix matcher, which is what we are building \u2014 it answers \"does this pattern start here?\", not \"does it consume everything?\". Anchoring to the end is exercise 3."}, {"chapter": "Matching by Hand", "heading": "Adding the star", "href": "#adding-the-star", "text": "`a*` is where the difficulty lives, because it is the first construct that does not consume a fixed amount of text. The pattern element is now two characters wide, and it can match any number of characters from zero upward. The standard move is to try every count. Try zero first, then one, then two, and return as soon as one of them works. def match_here(pattern, text): if not pattern: return True if len(pattern) >= 2 and pattern[1] == \"*\": return match_star(pattern[0], pattern[2:], text) if pattern[0] == \".\" or (text and pattern[0] == text[0]): return match_here(pattern[1:], text[1:]) return False def match_star(c, pattern, text): i = 0 while True: if match_here(pattern, tex Note the order inside `match_star`: it tries the *shortest* match first, growing only when the rest of the pattern fails. That makes this a lazy matcher. Real engines are greedy by default, which changes which match you get but not whether one exists. This trips people up match_star checks match_here(pattern, ...) \u2014 the pattern after the star, not including it. Passing the full pattern is the classic error, and it produces infinite recursion rather than a wrong answer, which at least fails loudly."}, {"chapter": "Matching by Hand", "heading": "Why this gets slow", "href": "#why-this-gets-slow", "text": "The matcher above is correct and short. It is also, on some inputs, unusable. Consider `a*a*a*b` against a string of `a`s with no `b`. Every `a` in the text can be claimed by the first star, the second, or the third. The matcher tries every assignment before it can conclude failure. Measure it rather than trusting the claim. The block below doubles the input twice and prints the cost each time. import time for n in (10, 20, 40, 60): text = \"a\" * n start = time.perf_counter() match(\"a*a*a*b\", text) print(f\"n={n:3} {(time.perf_counter() - start) * 1000:9.2f} ms\") Doubling the input from 20 to 40 does not double the time; it multiplies it by roughly twelve. That is the signature of a polynomial with a degree above one. Add a fourth star and the same doubling costs about twenty times more, because the degree of the polynomial is set by *how many stars can compete for the same character*, not by the length of the input. Three stars dividing a run of six a-characters, showing the many ways the same input can be split between them One input. Every division of it is a path the matcher must try. a a a a a a a a a a a a a a a a a a 3 / 1 / 2 1 / 4 / 1 2 / 1 / 3 \u2026and 25 more Figure 1-1. With "}, {"chapter": "Matching by Hand", "heading": "Practice", "href": "#practice", "text": "Exercise Fill the single blank so match_here also supports ? (zero or one). if len(pattern) >= 2 and pattern[1] == \"?\": if pattern[0] == \".\" or (text and pattern[0] == text[0]): if match_here(pattern[2:], text[1:]): return True return ____ Solution match_here(pattern[2:], text) \u2014 the zero-occurrence branch. Order matters: trying the one-occurrence branch first makes ? greedy, which is what every real engine does. Exercise Add ^ anchoring. Complete the stub. def match(pattern, text): if pattern.startswith(\"^\"): return ____ return any(match_here(pattern, text[i:]) for i in range(len(text) + 1)) Solution match_here(pattern[1:], text) . An anchored pattern tries position zero only, which is why anchoring a slow pattern often makes it fast \u2014 it removes the outer loop over starting positions, though not the inner exponential blowup. Exercise Write full_match(pattern, text) from scratch: true only if the pattern consumes the entire text. Do not modify match_here . Exercise Transfer: unmemoized recursive Fibonacci has the same shape as (a+)+ , and counting coin-change combinations has the same shape as a*a*a* . Say in one sentence what distinguishes the two shapes, before reading chapter 2"}, {"chapter": "Matching by Hand", "heading": "What to remember", "href": "#what-to-remember", "text": "A pattern element decides what to try next; matching is recursion over both the pattern and the text An empty pattern matches successfully, and that base case carries the whole recursion The star case tries every repetition count, and that is where the cost lives Stars competing for the same characters give polynomial cost, with the degree set by how many compete Nested repetition, which our language cannot express, is what makes the cost exponential Both are properties of the *search strategy*, not of regular expressions themselves **Terms introduced:** backtracking, anchoring, greedy and lazy matching, nested quantifier, catastrophic backtracking."}, {"chapter": "Matching by Hand", "heading": "Next", "href": "#next", "text": "The exponential cost comes from exploring one path at a time and starting over on failure. What if the matcher could be in several states at once?"}, {"chapter": "From Pattern to Machine", "heading": "(intro)", "href": "#ch02-pattern-to-machine", "text": "<span class=\"newthought\">The matcher in chapter 1</span> re-read the pattern string on every recursive call, deciding afresh each time whether it was looking at a literal, a dot, or a star. That is wasteful, but the real cost is structural: a string has no room to record *where else the matcher could be*. This chapter converts the pattern into something that does. What you'll learn Parse the four-construct language into a tree Compile that tree into a state machine using Thompson's construction Explain why the machine has at most one state per pattern character Assumes you know Chapter 1's matcher and why it slows down. Python dataclasses and dictionaries. Still no automata theory. ~30 min \u00b7 3 exercises"}, {"chapter": "From Pattern to Machine", "heading": "Warm-up", "href": "#warm-up", "text": "In chapter 1, what determined the degree of the polynomial \u2014 the length of the input, or something about the pattern? Something about the pattern: the number of stars competing for the same characters. The input length is the base, the pattern supplies the exponent. Why did match_star pass pattern[2:] rather than the whole pattern? Because pattern[0] and the * have both been accounted for by match_star itself. Passing the whole pattern recurses on the same input forever."}, {"chapter": "From Pattern to Machine", "heading": "Parsing, in one pass", "href": "#parsing-in-one-pass", "text": "Our language has four constructs and one precedence rule: `*` binds tighter than concatenation. That is small enough for a recursive descent parser of about thirty lines. We add alternation with `|`, which binds loosest, because it costs one function. from dataclasses import dataclass @dataclass class Char: c: str @dataclass class Dot: pass @dataclass class Star: inner: object @dataclass class Cat: left: object; right: object @dataclass class Alt: left: object; right: object class Parser: def __init__(self, src): self.src, self.i = src, 0 def peek(self): return self.src[self.i] if self.i < len(self.src) else Each precedence level is one method, calling the level below it. Alternation calls concatenation, which calls repeat, which calls atom. The call stack is the precedence table. concatenation stops at | and ) because those belong to a level above it, not to itself. repeat loops rather than recursing, so a** parses without nesting the stack. An empty alternative parses to `None`, which is the correct representation of \"matches the empty string\" and will compile to a machine that consumes nothing. This trips people up Parsing * inside atom rather than in its own level makes ab* mea"}, {"chapter": "From Pattern to Machine", "heading": "The machine", "href": "#the-machine", "text": "A state machine, for our purposes, is a set of numbered states. Each state is one of three things: `Consume(c, next)` if the current input character is `c` (or anything, for a dot), move to `next` `Split(a, b)` move to **both** `a` and `b`, without consuming input `Match` success `Split` is the entire idea. It is what a string pattern could not express: the representation now has a way to say \"the matcher is in two places at once\", which is what chapter 3 will exploit. The machine for a-star-b: a split state leading either into a loop consuming a, or forward to consume b split 'a' 'b' match take one more or stop here Figure 2-1. The machine for a*b . The split has no input condition: both of its arrows are always a"}, {"chapter": "From Pattern to Machine", "heading": "Thompson's construction", "href": "#thompsons-construction", "text": "Compiling the tree is one function per node type, and each one returns a fragment: a start state, plus a list of dangling arrows waiting to be pointed somewhere. CONSUME, SPLIT, MATCH = \"consume\", \"split\", \"match\" class Program: def __init__(self): self.states = [] def emit(self, kind, **kw): self.states.append({\"kind\": kind, **kw}) return len(self.states) - 1 def __len__(self): return len(self.states) def compile_node(node, prog, cont): \"\"\"Emit states for `node`, continuing to state index `cont`. Retur Read state 2: it offers state 3 (consume an `a`, then come back to the split) or state 1 (consume the `b` and finish). That is `a*b`, and it is four states. Predict: how many states does a*a*a*b compile to? Seven: one match , one consume for the b , and a split plus a consume for each of the three stars. Compare that with chapter 1, where the same pattern produced a search tree with tens of thousands of nodes. The machine does not grow with the input at all. Compiling backwards \u2014 passing in the continuation and returning the entry \u2014 is what avoids the dangling-arrow bookkeeping that Thompson's original formulation needs. The star case still needs one patch, because its body must loo"}, {"chapter": "From Pattern to Machine", "heading": "The size guarantee", "href": "#the-size-guarantee", "text": "The property that matters for chapter 3: for stars in range(1, 7): src = \"a*\" * stars + \"b\" prog, _ = compile_pattern(src) print(f\"{src:16} {len(src):>3} chars -> {len(prog):>3} states\") One state per pattern character, plus one. Thompson's construction has this property for every pattern in the language, and it is what makes the next chapter's simulation possible: a set of active states can never be larger than the pattern."}, {"chapter": "From Pattern to Machine", "heading": "An error the parser should reject", "href": "#an-error-the-parser-should-reject", "text": "Parser(\"(ab\").parse() The block above is checked on every build: it must fail, and its message must still mention the unclosed group. Here is that message on its own, without the traceback. for bad in [\"(ab\", \"a)b\", \"a**\"]: try: Parser(bad).parse() print(f\"{bad!r:6} accepted\") except SyntaxError as e: print(f\"{bad!r:6} rejected: {e}\") Failing here is worth some care. A matcher that accepts a malformed pattern and silently treats `(` as a literal will produce wrong answers on correct-looking input, which is far harder to debug than a parse error."}, {"chapter": "From Pattern to Machine", "heading": "Practice", "href": "#practice-2", "text": "Exercise Fill the blank so + (one or more) compiles correctly, reusing what you already have. if isinstance(node, Plus): return compile_node(____, prog, cont) Solution Cat(node.inner, Star(node.inner)) . Desugaring in the compiler rather than adding a state kind keeps the simulator in chapter 3 unchanged \u2014 the fewer state kinds it has to know about, the simpler it stays. Exercise Add ? to the parser and compiler. Two lines each. Exercise Transfer: compile_node takes a continuation and returns an entry point. Name one other place you have seen that shape. One answer Continuation-passing style generally; also the way a code generator emits a jump target before the code that jumps to it. Both share the trick of deciding \"where do I go when I'm done\" before emitting the work."}, {"chapter": "From Pattern to Machine", "heading": "What to remember", "href": "#what-to-remember-2", "text": "A recursive descent parser encodes precedence in its call stack: one method per level `Split` is the construct a pattern string cannot express, and it is why the machine is more powerful than the string Compiling backwards, with the continuation passed in, removes most of the arrow-patching Only the star case needs a patch, because its body loops back to itself The machine has one state per pattern character, and that bound holds for every pattern **Terms introduced:** recursive descent, precedence level, continuation, Thompson's construction, fragment, state machine."}, {"chapter": "From Pattern to Machine", "heading": "Next", "href": "#next-2", "text": "We have a machine with a `Split` state that says \"go both ways\". Chapter 1 went one way and backtracked. What happens if we go both ways at once?"}, {"chapter": "All Paths at Once", "heading": "(intro)", "href": "#ch03-all-paths-at-once", "text": "<span class=\"newthought\">Chapter 1's matcher</span> committed to one interpretation of the pattern and unwound when it failed. Chapter 2 built a machine whose `Split` states say \"go both ways\" without saying which way first. This chapter takes that literally: instead of choosing, we keep every possibility alive simultaneously. What you'll learn Simulate a state machine on a set of states rather than a single state Explain why the running time is the product of two bounded quantities Measure the difference against chapter 1 on the same pathological input Assumes you know Chapter 2's compiler and its state kinds. Chapter 1's timing experiment, which this chapter repeats for comparison. ~30 min \u00b7 4 exerc"}, {"chapter": "All Paths at Once", "heading": "Warm-up", "href": "#warm-up-2", "text": "Chapter 2 measured states against pattern length. What was the relationship? One state per pattern character, plus one for match . Linear, and it does not depend on the input at all. Chapter 1: why did anchoring a pattern with ^ make it faster without fixing the real problem? It removed the outer loop over starting positions, dividing the work by the input length. The exponential or high-degree polynomial inside a single starting position was untouched."}, {"chapter": "All Paths at Once", "heading": "The idea", "href": "#the-idea", "text": "Hold a **set** of states the machine could currently be in. For each input character, compute the set it could be in next. Accept if the `match` state is ever in the set. Two rules make it work: A `split` state is not a place you can be. Whenever a split enters the set, replace it with both of its targets, recursively. This is the *closure*. Each input character is consumed once, by every `consume` state in the set at the same time. Because the set is a set, a state that could be reached by two different paths appears once. That deduplication is the whole reason the cost collapses: chapter 1 explored those two paths separately and paid for both. Two columns of states: backtracking explores paths one at a time, simulation carries a set of states forward through each input character Backtracking: one path at a time, restart on failure Simulation: one set of states, one pass {0,2,3} {1,2,3} {1,2,3} {0,1}"}, {"chapter": "All Paths at Once", "heading": "The simulator", "href": "#the-simulator", "text": "def add_state(prog, i, current, seen): \"\"\"Add state i to the set, expanding splits so the set holds no split states.\"\"\" if i in seen: return seen.add(i) state = prog.states[i] if state[\"kind\"] == SPLIT: add_state(prog, state[\"a\"], current, seen) add_state(prog, state[\"b\"], current, seen) else: current.add(i) def simulate(prog, entry, text): seen is a separate set from current , and it is the one that terminates the recursion. It has to be separate, because splits are traversed but never stored. Splits are expanded on entry, so the set that simulate iterates over contains only consume and match states \u2014 no state kind needs handling twice. A fresh seen per input character, because a state reachable at position 4 may n This trips people up The obvious implementation checks if i in current and drops the separate seen set. It passes every test in this chapter, and then overflows the stack on (a*)* . The reason is that splits are never added to current , so a cycle that runs through splits is never detected \u2014 and a starred group compiles to exactly that cycle. The set that stops the recursion must reco Predict: for a*b , how large can current get? Three at most, because the machine has f"}, {"chapter": "All Paths at Once", "heading": "The payoff", "href": "#the-payoff", "text": "Chapter 1 took 22 milliseconds on `a*a*a*b` against forty characters, and roughly five times that at sixty. Here is the same work, same pattern, same machine. import time for n in (10, 20, 40, 60, 400, 4000): text = \"a\" * n start = time.perf_counter() full_match(\"a*a*a*b\", text) print(f\"n={n:5} {(time.perf_counter() - start) * 1000:8.2f} ms\") The time is proportional to the input length. Ten times the input costs about ten times the work, all the way up \u2014 where chapter 1 could not reach a hundred characters. The reason is that the work is bounded by two quantities that are both small: for each of the *n* input characters, the simulator does work proportional to the number of states *m*, which chapter 2 fixed at one per pattern character. So the cost is O(*nm*), and neither factor can surprise you.<label for=\"sn-3-1\" class=\"margin-toggle sidenote-number\"></label> <input type=\"checkbox\" id=\"sn-3-1\" class=\"margin-toggle\"> <span class=\"sidenote\">Ken Thompson published this construction in 1968, in a paper about compiling regular expressions to IBM 7094 machine code. The algorithm predates the backtracking engines that replaced it by about a decade.</span> Nested quantifiers change noth"}, {"chapter": "All Paths at Once", "heading": "What we gave up", "href": "#what-we-gave-up", "text": "This is not a free win, and a book that pretended otherwise would be lying to you. Capture groups The simulator knows *whether* it matched, not *where* each group did. Recovering that needs submatch tracking, which is genuinely harder. Backreferences `(a+)1` is not a regular language. No finite-state machine can express it, at any speed. Lookaround Not expressible in this model without extending the machine. Greedy versus lazy The set-based simulator has no notion of preference between paths, because it does not take paths one at a time. Those are the reasons production engines still use backtracking. Go's `regexp`, RE2, and Rust's `regex` crate made the opposite choice: they drop backreferences and lookaround in exchange for the guarantee, which for a server parsing untrusted input is usually the better trade."}, {"chapter": "All Paths at Once", "heading": "Practice", "href": "#practice-3", "text": "Exercise Fill the blank so simulate reports the length of the longest prefix matched, instead of a boolean. longest = -1 for pos, ch in enumerate(text): if any(prog.states[i][\"kind\"] == MATCH for i in current): longest = ____ # ... advance current as before Solution pos . Record before consuming, because current describes the machine's state before character pos is read. Off-by-one errors here are the reason to write the test first. Exercise Complete the stub so an unanchored search works, by allowing a new start at every position. for ch in text: nxt = set() add_state(prog, ____, nxt) # a fresh start, every character for i in current: ... Solution entry . This is the standard trick, and it is why unanchored search costs no more asymptotically than anchored: the extra start states merge into the same set rather than multiplying the work. Exercise From scratch: add a ? node to the parser, the compiler, and confirm the simulator needs no change at all. Explain in one sentence why it does not. Exercise Transfer: caching frozenset(current) to the set that follows it, per input character, converts this simulator into a DFA. Sketch what could go wrong with that cache on an adversarial pa"}, {"chapter": "All Paths at Once", "heading": "What to remember", "href": "#what-to-remember-3", "text": "A set of states replaces a choice between states, and the set deduplicates the paths backtracking pays for twice Splits are expanded on entry, so the stored set contains only states that consume input Membership must be checked before recursing, or a star loops forever The cost is O(*nm*): input length times machine size, with neither factor able to surprise you The guarantee is bought with capture groups, backreferences, and lookaround Backreferences are not slow here \u2014 they are not expressible, because the language they describe is not regular **Terms introduced:** closure, simulation, deduplication, DFA, submatch tracking."}, {"chapter": "All Paths at Once", "heading": "Where to go next", "href": "#where-to-go-next", "text": "The natural next step is submatch tracking: carrying, alongside each state, the input positions where each group began. Russ Cox's series on regular expression matching covers it, along with the history of how backtracking came to dominate despite Thompson's construction predating it. Go's `regexp` package and the RE2 source are both readable implementations of everything in this book, at production scale. What you have built is about two hundred lines and matches the asymptotic behaviour of those engines on the subset of syntax it supports. The gap between this and RE2 is features and constant factors, not the idea."}];</script>
+<script>
+/* techbook — book.js
+   Everything here is an enhancement. The book must be fully readable with this
+   file absent or JavaScript disabled, so nothing below creates content. */
+(function () {
+  "use strict";
+
+  /* ── theme: auto → light → dark, remembered per reader ─────────────────── */
+  var THEME_KEY = "techbook-theme";
+  function readTheme() {
+    try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; }
+  }
+  function applyTheme(t) {
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  function cycleTheme() {
+    var order = ["auto", "light", "dark"];
+    var cur = readTheme() || "auto";
+    var next = order[(order.indexOf(cur) + 1) % order.length];
+    try {
+      if (next === "auto") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, next);
+    } catch (e) { /* private mode: theme just won't persist */ }
+    applyTheme(next === "auto" ? null : next);
+    labelTheme(next);
+  }
+  function labelTheme(t) {
+    var btn = document.getElementById("theme-toggle");
+    if (btn) {
+      btn.textContent = t === "light" ? "Light" : t === "dark" ? "Dark" : "Auto";
+      btn.setAttribute("aria-label", "Theme: " + t + ". Click to change.");
+    }
+  }
+
+  /* ── copy buttons ──────────────────────────────────────────────────────── */
+  function wireCopy() {
+    document.querySelectorAll("button.copy").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var fig = btn.closest("figure.listing");
+        var code = fig && fig.querySelector("pre code");
+        if (!code) return;
+        var text = code.textContent.replace(/\s+$/, "");
+        var done = function () {
+          btn.textContent = "Copied";
+          btn.setAttribute("data-copied", "1");
+          setTimeout(function () {
+            btn.textContent = "Copy";
+            btn.removeAttribute("data-copied");
+          }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {});
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    });
+  }
+
+  /* ── scrollspy + reading progress ──────────────────────────────────────── */
+  function wireScroll() {
+    var bar = document.getElementById("progress");
+    var links = Array.prototype.slice.call(
+      document.querySelectorAll('.toc a[href*="#"]'));
+    var map = {};
+    links.forEach(function (a) {
+      var id = a.getAttribute("href").split("#")[1];
+      if (id) map[id] = a;
+    });
+    var targets = Object.keys(map)
+      .map(function (id) { return document.getElementById(id); })
+      .filter(Boolean);
+
+    var ticking = false;
+    function update() {
+      ticking = false;
+      if (bar) {
+        var doc = document.documentElement;
+        var max = doc.scrollHeight - doc.clientHeight;
+        var pct = max > 0 ? (doc.scrollTop / max) * 100 : 0;
+        bar.style.width = Math.min(100, Math.max(0, pct)) + "%";
+      }
+      if (!targets.length) return;
+      var line = window.scrollY + (window.innerHeight * 0.28);
+      var active = null;
+      for (var i = 0; i < targets.length; i++) {
+        if (targets[i].offsetTop <= line) active = targets[i];
+      }
+      links.forEach(function (a) { a.removeAttribute("aria-current"); });
+      if (active && map[active.id]) {
+        map[active.id].setAttribute("aria-current", "location");
+      }
+    }
+    function onScroll() {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    update();
+  }
+
+  /* ── search ────────────────────────────────────────────────────────────── */
+  function wireSearch() {
+    var dlg = document.getElementById("search");
+    var input = document.getElementById("search-input");
+    var list = document.getElementById("search-results");
+    if (!dlg || !input || !list) return;
+    var index = null, loading = false;
+
+    function load() {
+      if (index || loading) return Promise.resolve();
+      loading = true;
+      // Inlined by the single-file build; fetched otherwise.
+      if (window.__TECHBOOK_INDEX__) {
+        index = window.__TECHBOOK_INDEX__;
+        loading = false;
+        return Promise.resolve();
+      }
+      return fetch("search.json")
+        .then(function (r) { return r.json(); })
+        .then(function (j) { index = j; loading = false; })
+        .catch(function () { loading = false; });
+    }
+
+    function score(entry, terms) {
+      var h = entry.heading.toLowerCase(), t = entry.text.toLowerCase(), s = 0;
+      for (var i = 0; i < terms.length; i++) {
+        var q = terms[i];
+        if (!q) continue;
+        if (h.indexOf(q) !== -1) s += 12;
+        if (h.indexOf(q) === 0) s += 6;
+        var n = t.split(q).length - 1;
+        if (!n && h.indexOf(q) === -1) return 0;   // every term must appear
+        s += Math.min(n, 6);
+      }
+      return s;
+    }
+
+    function excerpt(text, term) {
+      var i = text.toLowerCase().indexOf(term);
+      if (i < 0) return text.slice(0, 120) + "…";
+      var start = Math.max(0, i - 45);
+      return (start ? "…" : "") + text.slice(start, start + 130).trim() + "…";
+    }
+
+    function render(q) {
+      list.innerHTML = "";
+      if (!index || q.trim().length < 2) return;
+      var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+      var hits = index
+        .map(function (e) { return { e: e, s: score(e, terms) }; })
+        .filter(function (x) { return x.s > 0; })
+        .sort(function (a, b) { return b.s - a.s; })
+        .slice(0, 12);
+      hits.forEach(function (hit) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = hit.e.href;
+        a.innerHTML =
+          '<span class="where">' + esc(hit.e.chapter) + "</span>" +
+          "<strong>" + esc(hit.e.heading) + "</strong>" +
+          '<span class="ctx">' + esc(excerpt(hit.e.text, terms[0])) + "</span>";
+        a.addEventListener("click", function () { dlg.close(); });
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+
+    function open() {
+      load().then(function () {
+        if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+        input.value = "";
+        list.innerHTML = "";
+        input.focus();
+      });
+    }
+
+    var btn = document.getElementById("search-toggle");
+    if (btn) btn.addEventListener("click", open);
+    input.addEventListener("input", function () { render(input.value); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        var first = list.querySelector("a");
+        if (first) first.focus();
+      }
+    });
+    dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+
+    document.addEventListener("keydown", function (e) {
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key === "k")) {
+        e.preventDefault();
+        open();
+      }
+    });
+  }
+
+  /* ── keyboard chapter nav ──────────────────────────────────────────────── */
+  function wireKeys() {
+    document.addEventListener("keydown", function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+      if (document.querySelector("dialog[open]")) return;
+      var sel = e.key === "ArrowLeft" ? 'link[rel="prev"], a.prev'
+              : e.key === "ArrowRight" ? 'link[rel="next"], a.next' : null;
+      if (!sel) return;
+      var el = document.querySelector(sel);
+      if (el && el.href) window.location.href = el.href;
+    });
+  }
+
+  /* ── init ──────────────────────────────────────────────────────────────── */
+  function init() {
+    labelTheme(readTheme() || "auto");
+    var tt = document.getElementById("theme-toggle");
+    if (tt) tt.addEventListener("click", cycleTheme);
+    wireCopy();
+    wireScroll();
+    wireSearch();
+    wireKeys();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+
+</script>
+</body></html>

@@ -1,0 +1,8 @@
+title: A Regex Engine From Scratch
+subtitle: Building a working matcher in 200 lines of Python, and understanding why it is fast
+audience: Working programmers who use regular expressions and have never implemented one
+prerequisites: Comfortable Python. No compiler or automata theory assumed.
+depth: brief
+language: python
+spine: A backtracking matcher, then a Thompson NFA simulator that cannot blow up
+non_goals: Unicode handling, capture groups, lookaround, regex flavours beyond a teaching subset

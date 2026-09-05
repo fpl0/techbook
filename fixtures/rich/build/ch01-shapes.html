@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shapes of a Chapter · A Rich Fixture</title>
+<script>
+(function(){try{var t=localStorage.getItem("techbook-theme");
+if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/book.css">
+
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <span class="crumb"><a href="index.html">A Rich Fixture</a> &nbsp;›&nbsp; Shapes of a Chapter</span>
+  <span class="spacer"></span>
+  <button id="search-toggle" type="button" aria-label="Search (press /)">Search <kbd>/</kbd></button>
+  <button id="theme-toggle" type="button">Auto</button>
+</header>
+<div id="progress"></div>
+<div class="shell">
+<nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+<li><a href="ch01-shapes.html" aria-current="page"><span class="chap-num">1</span>Shapes of a Chapter</a>
+<ol class="sub">
+<li><a href="#the-problem">The problem</a></li>
+<li><a href="#a-mental-model">A mental model</a></li>
+<li><a href="#practice">Practice</a></li>
+<li><a href="#what-to-remember">What to remember</a></li>
+</ol>
+</li>
+</ol></nav>
+<main id="main">
+<h1 id="chapter-1-shapes-of-a-chapter">Chapter 1: Shapes of a Chapter</h1>
+
+<p><span class="newthought">Every chapter</span> opens with a concrete problem, not a promise about what the chapter will cover. This one opens with a broken program.</p>
+
+<div class="orient">
+<h3>What you'll learn</h3>
+<ul>
+<li>Read a fenced block's contract and know whether its output was verified</li>
+<li>Tell a sidenote from a callout, and know when each earns its place</li>
+<li>Predict what a snippet prints before running it</li>
+</ul>
+<h3>Assumes you know</h3>
+<p>Basic Python syntax. Nothing else.</p>
+<p class="meta">~20 min · 4 exercises</p>
+</div>
+
+<h2 id="the-problem">The problem<a class="anchor" href="#the-problem" aria-label="Link to this section">#</a></h2>
+
+<p>Here is a function that looks right and is wrong.<label for="sn-1" class="margin-toggle sidenote-number"></label> <input type="checkbox" id="sn-1" class="margin-toggle"> <span class="sidenote">The bug is subtle enough that it survived code review twice in the original codebase this is drawn from.</span></p>
+
+<figure class="listing" id="listing-1-1">
+<figcaption class="bar">
+<span class="file">code/average.py</span>
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag verified">verified</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def average(values):
+    total = sum(values)
+<span class="hl-line">    return total / len(values)</span>
+
+print(average([1, 2, 3, 4]))</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-1.</span> A first attempt at a running average.</figcaption>
+</figure>
+<div class="output-block"><div class="label">Output</div><pre>2.5</pre></div>
+
+<p>That works. Now watch what happens on the empty list.</p>
+
+<figure class="listing" id="listing-1-2">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag error-demo">error demo</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def average(values):
+    return sum(values) / len(values)
+
+average([])</code></pre>
+<figcaption class="caption"><span class="num">Listing 1-2.</span></figcaption>
+</figure>
+
+<div class="callout">
+<div class="title">This trips people up</div>
+<p>An empty sequence is not an error in <code>sum</code> — it returns <code>0</code>
+quite happily. The failure surfaces one operation later, in the division, which is
+why the traceback points somewhere the reader did not expect.</p>
+</div>
+
+<details>
+<summary>Predict: what does <code>average([2])</code> return — <code>2</code> or <code>2.0</code>?</summary>
+
+<p><code>2.0</code>. True division always produces a float in Python 3, even when the
+operands divide evenly. This matters the moment you compare the result to an integer
+with <code>is</code> rather than <code>==</code>.</p>
+
+</details>
+
+<h2 id="a-mental-model">A mental model<a class="anchor" href="#a-mental-model" aria-label="Link to this section">#</a></h2>
+
+<figure>
+<svg viewBox="0 0 640 150" role="img" aria-labelledby="dia1-t">
+  <title id="dia1-t">Values flow into sum, then into division by the count</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dia-muted)"/>
+    </marker>
+  </defs>
+  <g fill="var(--dia-fill)" stroke="var(--dia-fg)" stroke-width="1.5">
+    <rect x="16" y="48" width="128" height="52" rx="4"/>
+    <rect x="256" y="48" width="128" height="52" rx="4"/>
+    <rect x="496" y="48" width="128" height="52" rx="4"/>
+  </g>
+  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)" text-anchor="middle">
+    <text x="80" y="79">values</text>
+    <text x="320" y="79">sum()</text>
+    <text x="560" y="79">/ len()</text>
+  </g>
+  <g stroke="var(--dia-muted)" stroke-width="1.5" marker-end="url(#arrow)" fill="none">
+    <path d="M 148 74 L 250 74"/>
+    <path d="M 388 74 L 490 74"/>
+  </g>
+</svg>
+<figcaption>Figure 1-1. The count is read separately from the sum, so an empty input
+only fails at the second step.</figcaption>
+</figure>
+
+<div class="table-wrap"><table><thead><tr><th>Input</th><th style="text-align:right"><code>sum</code></th><th style="text-align:right"><code>len</code></th><th>Result</th></tr></thead><tbody><tr><td><code>[1,2,3,4]</code></td><td style="text-align:right">10</td><td style="text-align:right">4</td><td><code>2.5</code></td></tr><tr><td><code>[2]</code></td><td style="text-align:right">2</td><td style="text-align:right">1</td><td><code>2.0</code></td></tr><tr><td><code>[]</code></td><td style="text-align:right">0</td><td style="text-align:right">0</td><td>raises</td></tr></tbody></table></div>
+
+<h2 id="practice">Practice<a class="anchor" href="#practice" aria-label="Link to this section">#</a></h2>
+
+<div class="exercises">
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Fill the single blank so the function returns <code>None</code> for empty input.</p>
+
+
+<figure class="listing">
+<figcaption class="bar">
+<span class="lang">python</span>
+<span class="spacer"></span>
+<span class="tag unverified">illustrative</span>
+<button class="copy" type="button">Copy</button>
+</figcaption>
+<pre><code class="language-python">def average(values):
+    if ____:
+        return None
+    return sum(values) / len(values)</code></pre>
+</figure>
+
+<details><summary>Solution</summary>
+<p><code>not values</code>. Prefer it over <code>len(values) == 0</code>: it reads as
+the question being asked, and it works for any sequence.</p>
+</details>
+</div>
+
+<div class="exercise">
+<span class="label">Exercise</span>
+<p>Now write it from scratch, raising <code>ValueError</code> instead.</p>
+</div>
+</div>
+
+<h2 id="what-to-remember">What to remember<a class="anchor" href="#what-to-remember" aria-label="Link to this section">#</a></h2>
+
+<ul>
+<li><code>sum</code> of an empty sequence is <code>0</code>, not an error</li>
+<li>Errors often surface one step after the operation that caused them</li>
+<li>Nested lists work too:
+<ul>
+<li>like this</li>
+<li>and this</li>
+</ul></li>
+</ul>
+<nav class="chapter-nav">
+</nav>
+</main>
+</div>
+<dialog id="search" aria-label="Search the book">
+  <input id="search-input" type="search" placeholder="Search the book…" autocomplete="off">
+  <ul id="search-results"></ul>
+</dialog>
+<script src="assets/book.js"></script>
+</body></html>
