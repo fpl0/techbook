@@ -1,98 +1,189 @@
 # techbook
 
-A Claude Code skill that turns a technical topic into a book: researched, structured
-for teaching, written to a house style, and published as HTML in which **every code
-example has actually been executed**.
+A [Claude Code](https://claude.com/claude-code) skill that writes technical books —
+and refuses to publish one whose code examples have not actually run.
 
-The differentiator is the last part. Any model can produce plausible-looking code in a
-book. This one refuses to publish a book whose examples have not run.
+Any model can produce a book full of plausible-looking code. This one extracts every
+fenced block, executes it in a sandbox, diffs the real output against what the book
+claims, and blocks the build if they disagree.
+
+```
+Book verification · 2026-09-05
+──────────────────────────────────────────────────────────────
+Blocks    17 total   (12 from cache)
+  OK             12
+  literal         5
+
+All code verified.
+```
+
+## Why
+
+I went looking for an existing technical-book skill and found that the space is almost
+entirely 1–20★ hobby repos, none of which publish a finished book as evidence their
+pipeline works. The parts that *are* well-studied — long-form generation, deep
+research, verified documentation — mostly point away from the obvious design. So this
+implements what the evidence supports, and gates the output on something checkable.
+
+## Install
+
+```sh
+ln -sfn ~/Code/techbook/skill ~/.claude/skills/techbook
+```
+
+The symlink means edits to the repo take effect immediately. Restart Claude Code, or
+start a new session, for the skill to register.
+
+**Requires:** Python 3.11+ (`verify.py` uses `tomllib`), macOS for the `sandbox-exec`
+sandbox, plus a toolchain for whatever language your book's examples are written in.
+Everything else is standard library — no `pip install`, no build step.
+
+## Use
+
+Ask for a book. The skill interviews you before writing anything, because the audience
+and scope decisions are yours and everything downstream inherits them.
+
+```
+> write me a short book about how B-trees work, with runnable Rust
+```
+
+It then runs a gated pipeline: scope interview → parallel research with citation
+liveness checks → a detailed per-chapter outline → sequential chapter drafting →
+the code gate → staged editing → render. You approve the brief and the outline before
+any prose is written. Runs are resumable from `state.json`:
+
+```
+> continue the book in ./btrees
+```
+
+Books default to `standard` depth (6–8 chapters, ~25k words). Say "short" or
+"thorough" for `brief` (~8k) or `comprehensive` (~55k).
+
+## What you get
+
+```
+my-book/
+├── src/ch01-*.md        chapter sources, the durable artifact
+├── src/SUMMARY.md       mdBook-shaped, so adopting a toolchain later is one command
+├── code/                every listing as a real file
+├── verify/python/       a real project with a real manifest
+└── build/
+    ├── index.html       cover and contents
+    ├── chNN-*.html      one page per chapter
+    ├── book.html        every chapter in one self-contained file
+    └── search.json
+```
+
+`book.html` inlines its CSS, JS and search index — zero external requests, so it works
+offline and prints to a usable PDF. No framework, no web fonts, no CDN, and the book
+stays readable with JavaScript disabled.
+
+## The scripts
+
+The skill drives these, but they work standalone on any book directory.
+
+| Command | Does |
+|---|---|
+| `verify.py <book>` | lint the block contract, execute, diff, report |
+| `verify.py <book> --promote` | accept output corrections |
+| `verify.py <book> --strict` | publish gate: unverified blocks fail too |
+| `verify.py <book> --only chNN` | restrict to matching chapters |
+| `render.py <book>` | Markdown → HTML |
+| `urlcheck.py <book>` | citation liveness, Wayback-backed |
+
+### The block contract
+
+Every fenced block declares a mode, and **an undeclared code block is a hard lint
+error** — never a silent skip:
+
+| Mode | Passes when |
+|---|---|
+| `run` | exits 0 **and** real output matches the ` ```output ` block below it |
+| `check` | compiles or parses |
+| `expect-error` | it fails, with the named message in stderr |
+| `norun` | never — reported as unverified, with the reason you gave |
+| `literal` | never executed; requires `why="…"` so it can't hide unchecked code |
+
+Blocks sharing an `env=` run as one session, in document order, because a book's
+listings are a narrative rather than independent units.
+
+### Two things it does that most doc-testing setups don't
+
+**Nothing is edited in place.** When real output differs from the book, `verify.py`
+writes `chNN.md.corrected` beside the chapter and prints a diff. `--promote` is a
+separate, deliberate step. You decide what your book says.
+
+**Imports are resolved before anything executes.** Every import must already be pinned
+in `verify/python/pyproject.toml` or `verify/node/package.json`. Roughly a fifth of
+package names that language models suggest do not exist, the fabrications recur across
+runs, and attackers register the popular ones — so installing to find out *is* the
+attack. Execution is offline by default; a block that needs the network must say `net`.
+
+## Does it work?
+
+`demo/regex-from-scratch/` is a real three-chapter book (4,504 words, 17 blocks)
+written with the skill. The gate caught four defects that reading the draft did not:
+
+| Caught | Why it mattered |
+|---|---|
+| Prose claimed cost "doubles per character" | Measured growth was polynomial. Exponential blowup needs *nested* quantifiers, which the book's toy language can't express. The claim was wrong. |
+| Hand-written traceback in an error demo | Real stderr had frames the book omitted. |
+| `(a*)*b` overflowed the stack | **A real bug in the book's own simulator** — split states are never stored, so a cycle running *through* splits went undetected. The fix is now the chapter's misconception callout. |
+| Chapters 2 and 3 in separate exec sessions | Chapter 3's code referenced chapter 2's compiler and could never have run for a reader. |
+
+Two factual errors and one genuine bug, none of which a careful read would have found.
+
+Reproduce it:
+
+```sh
+python3 skill/scripts/verify.py demo/regex-from-scratch --no-cache
+python3 skill/scripts/render.py demo/regex-from-scratch
+open demo/regex-from-scratch/build/index.html
+```
+
+## Limitations
+
+- **Hand-written benchmarks pass the gate.** Durations normalise to `<DUR>` so diffs stay stable across runs, which means an invented timing is indistinguishable from a measured one. The gate cannot catch this; `references/block-tags.md` tells authors to paste measured output, and that's the only protection.
+- **No semantic cross-chapter repetition detection**, and no automatic through-line measurement. Neither has a good solution in the literature. The structural editing pass is partial; the final read is human.
+- **macOS only** for sandboxing. `sandbox-exec` has no Linux equivalent wired up here; without it, blocks still execute but unsandboxed.
+- **Verification covers exit status and output text.** Not memory, not concurrency, not anything a test suite would catch that stdout doesn't show.
+- A `comprehensive` run is many subagents and hours of wall time.
+
+## Design notes
+
+Three choices where the research points away from the obvious answer:
+
+- **Research runs in parallel; writing runs in series.** LangChain shipped parallel section-writers and pivoted away — the sections did not know about each other.
+- **No book toolchain.** Every technical book people praise for its HTML uses a custom pipeline; mdBook, Quarto and Docusaurus all impose a recognisable docs-site look and all fail the fresh-machine test. `SUMMARY.md` is still emitted, so adopting mdBook later costs one command.
+- **State on disk, not in context.** Chapter 1's details are diluted by the time chapter 8 is written, even when technically still in the window.
 
 ## Layout
 
 ```
-skill/                 the skill itself; symlinked into ~/.claude/skills/techbook
-├── SKILL.md           the orchestrator: phases, gates, resumability
-├── references/        house style, chapter template, block contract, HTML spec, diagram kit
-├── assets/            book.css and book.js, shipped verbatim into every book
-├── scripts/           verify.py, render.py, urlcheck.py
-└── evals/evals.json   4 evals, 15 assertions
-fixtures/              good / bad / rich — regression fixtures for the scripts
-demo/regex-from-scratch/   a real 3-chapter book built with the skill
+skill/            SKILL.md (174 lines), references (725), assets (1,002), scripts (1,706)
+skill/evals/      4 evals, 15 assertions
+fixtures/         good / bad / rich — regression fixtures for the scripts
+demo/             a real book built with the skill
 ```
 
-## Install
+`fixtures/bad` deliberately contains one of every contract violation; running
+`verify.py` against it should exit 2 with seven lint errors.
 
-```bash
-ln -sfn ~/Code/techbook/skill ~/.claude/skills/techbook
+## Contributing
+
+Issues and pull requests welcome. Before opening a PR, run the regression pass:
+
+```sh
+python3 skill/scripts/verify.py fixtures/bad          # expect exit 2
+python3 skill/scripts/verify.py fixtures/good --no-cache
+python3 skill/scripts/verify.py demo/regex-from-scratch --strict
+python3 skill/scripts/render.py demo/regex-from-scratch
 ```
 
-The symlink means edits here take effect immediately, with no copy step.
+Changes to `references/` change what chapter writers are told, so they change output.
+Say what you tested against.
 
-## The scripts
+## License
 
-All three are dependency-free Python 3.10+, and run on a machine with nothing
-installed beyond a language toolchain for whatever the book's examples are written in.
-
-```bash
-python3 skill/scripts/verify.py   <book>            # lint, execute, diff, report
-python3 skill/scripts/verify.py   <book> --promote  # accept output corrections
-python3 skill/scripts/verify.py   <book> --strict   # publish gate
-python3 skill/scripts/render.py   <book>            # markdown -> HTML
-python3 skill/scripts/urlcheck.py <book>            # citation liveness
-```
-
-### verify.py
-
-Every fenced block declares a mode — `run`, `check`, `expect-error`, `norun`,
-`literal` — and an undeclared code block is a hard lint error rather than a silent
-skip. Blocks execute under `sandbox-exec` with network denied and writes confined to
-the book's scratch directory. Imports are resolved against a pinned manifest *before*
-anything runs, because roughly a fifth of package names that language models suggest
-do not exist, and installing to find out is the attack.
-
-When real output differs from what the book claims, nothing is edited in place: a
-`.md.corrected` file is written alongside the chapter with a diff, and `--promote` is
-the separate step that accepts it.
-
-### render.py
-
-A focused Markdown parser and static site generator. Emits per-chapter pages plus a
-single self-contained `book.html` that inlines its CSS, JS and search index, so it
-works offline and prints to a decent PDF. No framework, no web fonts, no build step,
-no network at read time, and the book stays readable with JavaScript disabled.
-
-## Does it work?
-
-The demo book was written using the skill, and the gate caught four real defects that
-would otherwise have shipped:
-
-| What the gate caught | Why it mattered |
-|---|---|
-| Prose claimed the backtracking matcher's cost doubled per character | Measured growth was polynomial. Exponential blowup needs *nested* quantifiers, which the book's toy language cannot express. The claim was wrong. |
-| A hand-written traceback in an error demo | Real output had frames the book omitted. The demo now shows a clean, verified message instead. |
-| `(a*)*b` overflowed the stack in the chapter 3 simulator | A genuine bug: split states are never stored, so a cycle running *through* splits went undetected. The fix, and the trap, are now the chapter's misconception callout. |
-| Chapters 2 and 3 were in separate execution sessions | Chapter 3's code referenced chapter 2's compiler and could not have run for a reader. |
-
-Two of those are factual errors in prose and one is a real bug. None would have been
-caught by reading the draft.
-
-It also found a hole in its own design: durations normalise to `<DUR>` so diffs stay
-stable across runs, which means a hand-invented benchmark passes the gate exactly as a
-measured one does. That hazard is now documented in `references/block-tags.md` — paste
-measured output, never write it.
-
-## What it does not do
-
-- Semantic cross-chapter repetition detection. No good solution exists in the literature.
-- Automatic "through-line" measurement. The structural editing pass is a partial mitigation; the final read is human.
-- Capture-group-level verification of anything but exit status and output text.
-
-## Design notes
-
-The architecture follows what the research actually supports, which in several places
-is the opposite of the obvious choice:
-
-- **Research runs in parallel, writing runs in series.** LangChain shipped parallel section-writers and pivoted away — the sections did not know about each other.
-- **No book toolchain.** Every technical book people praise for its HTML uses a custom pipeline; mdBook, Quarto and Docusaurus all produce a recognisable docs-site look and all fail the fresh-machine test. Markdown sources plus `SUMMARY.md` are still emitted, so adopting mdBook later costs one command.
-- **A detailed per-chapter contract before drafting.** Outline granularity buys more coherence than any amount of later editing.
-- **State on disk, not in context.** Chapter 1's details are diluted by the time chapter 8 is written, even when they are technically still in the window.
+Not yet chosen, which means default copyright applies and nobody else has permission
+to use or redistribute this. Pick one before publishing the repo.
