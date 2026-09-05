@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All Paths at Once · A Regex Engine From Scratch</title>
+<script>
+(function(){try{var t=localStorage.getItem("techbook-theme");
+if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/book.css">
+<link rel="prev" href="ch02-pattern-to-machine.html">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <span class="crumb"><a class="book" href="index.html">A Regex Engine From Scratch</a><span class="sep"> &nbsp;·&nbsp; </span>All Paths at Once</span>
+  <span class="spacer"></span>
+  <span class="section" id="running-section"></span>
+  <details class="contents-drawer"><summary>Contents</summary><nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol>
+<li><a href="ch01-matching-by-hand.html"><span class="chap-num">1</span>Matching by Hand</a>
+</li>
+<li><a href="ch02-pattern-to-machine.html"><span class="chap-num">2</span>From Pattern to Machine</a>
+</li>
+<li><a href="ch03-all-paths-at-once.html" aria-current="page"><span class="chap-num">3</span>All Paths at Once</a>
+<ol class="sub">
+<li><a href="#following-the-split-arrows">Following the split arrows</a></li>
+<li><a href="#why-it-is-linear">Why it is linear</a></li>
+<li><a href="#the-cycle">The cycle</a></li>
+<li><a href="#what-the-set-forgets">What the set forgets</a></li>
+<li><a href="#practice-3">Practice</a></li>
+<li><a href="#mental-model-3">Mental model</a></li>
+<li><a href="#one-opinion-3">One opinion</a></li>
+<li><a href="#going-deeper-3">Going deeper</a></li>
+</ol>
+</li>
+</ol>
+<ol class="extras"><li><a href="glossary.html">Glossary</a></li></ol>
+</nav></details>
+  <button id="search-toggle" type="button" aria-keyshortcuts="/">Search<kbd>/</kbd></button>
+  <button id="theme-toggle" type="button" aria-label="Colour scheme: automatic" title="Colour scheme: automatic">Theme</button>
+</header>
+<div class="shell">
+<main id="main">
+<p class="chapter-label">Chapter 3</p>
+<h1 id="chapter-3-all-paths-at-once">All Paths at Once</h1>
+
+<p>Eight states. That is the whole machine chapter 2 compiled for <code>a*a*a*b</code>, and chapter 1 needed 822.2 ms to run the same pattern against 320 a's, because its matcher walked the give-back loops one path at a time and kept nothing from the paths it abandoned. A machine of eight states has nowhere to put a million paths. It can be in at most eight places, and a matcher that tracks <em>places</em> instead of paths has no reason to care how long the text is.</p>
+
+<p>Ken Thompson's 1968 paper states the method in two sentences: <a href="https://www.oilshell.org/archive/Thompson-1968.pdf" target="_blank" rel="noopener">"each character in the text to be searched is examined in sequence against a list of all possible current characters. During this examination a new list of all possible next characters is built."</a> The sentence before them describes the matcher you already have. Earlier methods "involve backtracking when a partially successful search path fails", which "necessitates a lot of storage and bookkeeping, and executes slowly". Two lists, one character at a time, no return trips. This chapter writes those lists in four functions, times them against the recursive matcher and against <code>re</code>, and then deletes one check to meet the bug the design invites.</p>
+
+<div class="orient">
+  <h3>What you'll learn</h3>
+  <ul>
+    <li>Run chapter 2's machine over a text as a set of live states, one step per character, with no path ever revisited</li>
+    <li>Explain why the work per character is bounded by the pattern and cannot grow with the text</li>
+    <li>Measure <code>tinyre</code> against chapter 1's matcher and Python's <code>re</code>, and say what the table does and does not show</li>
+    <li>Find the split cycle that hangs a careless simulator, and name the one check that stops it</li>
+  </ul>
+  <h3>Assumes you know</h3>
+  <p>Chapter 2's machine: <code>State</code> with <code>ch</code>, <code>out</code>, <code>alt</code> and <code>matched</code>, split states, the match state, and <code>compile_pattern</code>. The timings of chapter 1. Python sets and <code>id()</code>.</p>
+  <p class="meta">~45 min · 4 exercises</p>
+</div>
+
+<details>
+  <summary>Warm-up: chapter 1 timed <code>a*a*a*b</code> against 320 a's at 822.2 ms. Where did the time go, and what did the matcher keep from each rejected attempt?</summary>
+  <p>Three stars, three nested give-back loops, about n³ calls to <code>match_here</code>, with each rejected suffix checked again on the next trip round the loop above it. The matcher kept nothing. The only record of a failed attempt is the loop counter of the star that made it.</p>
+</details>
+
+<details>
+  <summary>Warm-up: a pattern of m non-parenthesis characters compiles to how many states, and what does the machine do when it reaches a split state?</summary>
+  <p>m+1, the extra one being the match state, and the text has no say in it because the compiler reads only the tree. At a split the machine takes both arrows without consuming a character, so being in a split state means being in both of its successors.</p>
+</details>
+
+<div class="crux">
+  <div class="title">The crux</div>
+  <p>A pattern of m characters compiles to m+1 states, and a machine cannot be in more states than it has. If the matcher never holds more than m+1 of them at a time, how can the work per character of text be anything but bounded? And what does holding them cost when two paths arrive at the same state?</p>
+</div>
+
+<h2 id="following-the-split-arrows"><a class="anchor" href="#following-the-split-arrows" aria-label="Link to this section">#</a>Following the split arrows</h2>
+
+<p>Listing 2-6 printed the machine for <code>(a|b)*c</code>: <code>s0</code> is the star's split, with arrows to <code>s1</code> and <code>s2</code>; <code>s1</code> is the alternation's split, with arrows to <code>s3</code> for <code>a</code> and <code>s4</code> for <code>b</code>; <code>s2</code> is <code>c</code>, leading to the match state <code>s5</code>. Before the first character is read, where is the machine? Its entry is <code>s0</code>. But <code>s0</code> consumes nothing, so being at <code>s0</code> is being at <code>s1</code> and <code>s2</code>, and <code>s1</code> consumes nothing either, so being at <code>s1</code> is being at <code>s3</code> and <code>s4</code>. The machine starts in three states, <code>s3</code>, <code>s4</code> and <code>s2</code>, and neither split is among them. Russ Cox puts it in one sentence: the machine <a href="https://swtch.com/~rsc/regexp/regexp1.html" target="_blank" rel="noopener">"starts in the start state and all the states reachable from the start state by unlabeled arrows"</a>. The textbooks call that set the <strong>epsilon closure</strong>, epsilon being the empty string a split arrow consumes.</p>
+
+<p>The closure is not a separate pass. In Cox's C, <code>addstate</code> "also follows unlabeled arrows: if s is a Split state with two unlabeled arrows to new states, addstate adds those states to the list instead of s". A split costs nothing to pass through, so pass through it at the moment you would otherwise have stored it. The list then only ever holds states that can consume a character, plus the match state, and the function that adds a state after a character is the same one that computes the closure at the start. In Listing 3-1, watch what <code>add_state</code> refuses to store, and what <code>step</code> builds fresh every time.</p>
+
+<figure class="listing" id="listing-3-1">
+<div class="file">code/simulate.py</div>
+<pre><code class="language-python numbered"><span class="line"><span class="s">"""Run the machine over the text, holding every live state at once."""</span></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">add_state</span>(states, s, seen):</span>
+<span class="line">    <span class="s">"""Add `s`, following split states eagerly; `seen` breaks cycles."""</span></span>
+<span class="line">    <span class="k">if</span> s <span class="k">is</span> <span class="k">None</span> <span class="k">or</span> <span class="t">id</span>(s) <span class="k">in</span> seen:</span>
+<span class="line">        <span class="k">return</span></span>
+<span class="line">    seen.add(<span class="t">id</span>(s))</span>
+<span class="line">    <span class="k">if</span> s.ch <span class="k">is</span> <span class="k">None</span> <span class="k">and</span> <span class="k">not</span> s.matched:      <span class="c"># a split: take both arms</span></span>
+<span class="line">        add_state(states, s.out, seen)</span>
+<span class="line">        add_state(states, s.alt, seen)</span>
+<span class="line">    <span class="k">else</span>:</span>
+<span class="line">        states.append(s)</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">step</span>(current, ch):</span>
+<span class="line">    <span class="s">"""Every state one character further on. A set, so no path is counted twice."""</span></span>
+<span class="line">    following, seen = [], <span class="t">set</span>()</span>
+<span class="line">    <span class="k">for</span> s <span class="k">in</span> current:</span>
+<span class="line">        <span class="k">if</span> s.ch <span class="k">is</span> <span class="k">not</span> <span class="k">None</span> <span class="k">and</span> (s.ch == <span class="s">"."</span> <span class="k">or</span> s.ch == ch):</span>
+<span class="line">            add_state(following, s.out, seen)</span>
+<span class="line">    <span class="k">return</span> following</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">fullmatch</span>(start, text):</span>
+<span class="line">    current = []</span>
+<span class="line">    add_state(current, start, <span class="t">set</span>())</span>
+<span class="line">    <span class="k">for</span> ch <span class="k">in</span> text:</span>
+<span class="line">        current = step(current, ch)</span>
+<span class="line">        <span class="k">if</span> <span class="k">not</span> current:</span>
+<span class="line">            <span class="k">return</span> <span class="k">False</span></span>
+<span class="line">    <span class="k">return</span> <span class="t">any</span>(s.matched <span class="k">for</span> s <span class="k">in</span> current)</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">search</span>(start, text):</span>
+<span class="line">    <span class="s">"""Unanchored: re-enter the start state before every character."""</span></span>
+<span class="line">    current, seen = [], <span class="t">set</span>()</span>
+<span class="line">    add_state(current, start, seen)</span>
+<span class="line">    <span class="k">for</span> ch <span class="k">in</span> text:</span>
+<span class="line">        <span class="k">if</span> <span class="t">any</span>(s.matched <span class="k">for</span> s <span class="k">in</span> current):</span>
+<span class="line">            <span class="k">return</span> <span class="k">True</span></span>
+<span class="line">        current = step(current, ch)</span>
+<span class="line">        add_state(current, start, {<span class="t">id</span>(s) <span class="k">for</span> s <span class="k">in</span> current})</span>
+<span class="line">    <span class="k">return</span> <span class="t">any</span>(s.matched <span class="k">for</span> s <span class="k">in</span> current)</span></code><button class="copy" type="button" aria-label="Copy listing 3-1">Copy</button></pre>
+<figcaption><span class="num">Listing 3-1.</span> The simulator. Four functions, and the machine is never modified.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
+</figure>
+
+<ol class="annot">
+<li>Lines 4 to 13. A split is followed both ways and never stored, so <code>states</code> holds character states and the match state only. <code>seen</code> holds <code>id(s)</code> rather than <code>s</code>.
+The <code>eq=False</code> on <code>State</code> in chapter 2 means a set of states would compare by identity anyway; the ids make that explicit and cost one integer per entry. Cox does the same job without a set: every state carries a <code>lastlist</code> field, each new list gets a fresh generation number, and "if the two are already equal, then s is already on the list being built". Both versions make the check <em>before</em> the recursion. The end of this chapter is about why.</li>
+<li>Lines 16 to 21. <code>step</code> builds a new list and a new <code>seen</code> per character and leaves the old list alone, so the machine after a character depends on the machine before it and that one character, nothing else. A state whose character does not match contributes nothing to <code>following</code>. That is how a path dies here: it is not carried forward, and nothing unwinds.</li>
+<li>Lines 24 to 31. An empty list means every path is dead and no later character can revive one, which is the only early exit. Success at the end means the text is exhausted <em>and</em> the match state is live.
+That is the whole-text question, where chapter 1's <code>match_here</code> asked about a prefix, and the function takes Python's name for it.</li>
+<li>Lines 34 to 42. The unanchored search re-enters the start state before every character, which folds the loop over start positions into the same pass. The <code>seen</code> handed to <code>add_state</code> on line 41 is seeded with the ids already live, so re-entry cannot duplicate a state that is there. The check on line 38 comes before the character is consumed, because a match that ended at position i is visible in the set before character i is read. The set does not know where that match started. Hold that thought.</li>
+</ol>
+
+<p>Listing 3-2 prints the live set of <code>(a|b)*c</code> before any input and after each character of <code>abc</code>, labelling each state by the character it consumes.</p>
+
+<figure class="listing" id="listing-3-2">
+<pre><code class="language-python numbered"><span class="line"><span class="k">from</span> parse <span class="k">import</span> parse</span>
+<span class="line"><span class="k">from</span> machine <span class="k">import</span> compile_pattern</span>
+<span class="line"><span class="k">import</span> simulate</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">labels</span>(states):</span>
+<span class="line">    <span class="k">return</span> [<span class="s">"Match"</span> <span class="k">if</span> s.matched <span class="k">else</span> s.ch <span class="k">for</span> s <span class="k">in</span> states]</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line">current = []</span>
+<span class="line">simulate.add_state(current, compile_pattern(parse(<span class="s">"(a|b)*c"</span>)), <span class="t">set</span>())</span>
+<span class="line"><span class="t">print</span>(<span class="s">"start  "</span>, labels(current))</span>
+<span class="line"><span class="k">for</span> ch <span class="k">in</span> <span class="s">"abc"</span>:</span>
+<span class="line">    current = simulate.step(current, ch)</span>
+<span class="line">    <span class="t">print</span>(<span class="s">f"after {ch}"</span>, labels(current))</span></code><button class="copy" type="button" aria-label="Copy listing 3-2">Copy</button></pre>
+<pre class="output" aria-label="Output">start   [&#x27;a&#x27;, &#x27;b&#x27;, &#x27;c&#x27;]
+after a [&#x27;a&#x27;, &#x27;b&#x27;, &#x27;c&#x27;]
+after b [&#x27;a&#x27;, &#x27;b&#x27;, &#x27;c&#x27;]
+after c [&#x27;Match&#x27;]</pre>
+<figcaption><span class="num">Listing 3-2.</span> The live set over <code>abc</code>. The split states never appear.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
+</figure>
+
+<p>The set before <code>a</code> and the set after it are the same three states, and so is the set after <code>b</code>. Every arrow out of <code>s3</code> and <code>s4</code> leads back to <code>s0</code>, and the closure from <code>s0</code> is always the same three states, so however many a's and b's the text holds, the machine does the same amount of work for each. This is a <strong>simulation</strong> of the machine: not one path at a time but every path, held as the set of states the paths currently occupy, which the rest of the book calls the <strong>live set</strong>. Figure 3-1 draws the same run as a timeline.</p>
+
+<figure>
+<div class="diagram"><svg viewBox="0 0 800 328" role="img" aria-labelledby="dia-3-1-title">
+  <title id="dia-3-1-title">The live set of (a|b)*c is the same three states before a, before b and before c, because each consumed character leads back to s0 and the closure from s0 never changes; after c only the match state is live</title>
+  <defs>
+    <marker id="arrow-ch3" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dia-muted)"/>
+    </marker>
+  </defs>
+
+  <g fill="var(--dia-fill)" stroke="var(--dia-fg)" stroke-width="1.5">
+    <rect x="224" y="24"  width="320" height="48" rx="4"/>
+    <rect x="224" y="104" width="320" height="48" rx="4"/>
+    <rect x="224" y="184" width="320" height="48" rx="4"/>
+  </g>
+  <g fill="var(--dia-fill)" stroke="var(--dia-accent)" stroke-width="2.5">
+    <rect x="224" y="264" width="320" height="48" rx="4"/>
+  </g>
+
+  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+     text-anchor="middle" dominant-baseline="middle">
+    <text x="384" y="48">live: s3 a, s4 b, s2 c</text>
+    <text x="384" y="128">live: s3 a, s4 b, s2 c</text>
+    <text x="384" y="208">live: s3 a, s4 b, s2 c</text>
+    <text x="384" y="288" fill="var(--dia-accent)">live: s5 Match</text>
+  </g>
+  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+     text-anchor="start" dominant-baseline="middle">
+    <text x="24" y="48">before reading a</text>
+    <text x="24" y="128">before reading b</text>
+    <text x="24" y="208">before reading c</text>
+    <text x="24" y="288">text exhausted</text>
+  </g>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-accent)"
+     text-anchor="start" dominant-baseline="middle">
+    <text x="400" y="88">read a</text>
+    <text x="400" y="168">read b</text>
+    <text x="400" y="248">read c</text>
+  </g>
+  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-muted)"
+     text-anchor="start" dominant-baseline="middle">
+    <text x="576" y="40">closure from s0: s0 and s1</text>
+    <text x="576" y="58">consume nothing, so skipped</text>
+    <text x="576" y="120">s3 took the a, back to s0,</text>
+    <text x="576" y="138">same closure again</text>
+    <text x="576" y="200">s4 took the b, back to s0,</text>
+    <text x="576" y="218">same closure again</text>
+    <text x="576" y="280">s2 took the c; s3 and s4</text>
+    <text x="576" y="298">had no arrow for c and died</text>
+  </g>
+
+  <g stroke="var(--dia-muted)" stroke-width="1.5" fill="none" marker-end="url(#arrow-ch3)">
+    <path d="M 384 72 L 384 104"/>
+    <path d="M 384 152 L 384 184"/>
+    <path d="M 384 232 L 384 264"/>
+  </g>
+</svg></div>
+<figcaption><span class="num">Figure 3-1.</span> Each row is the set of states that could consume the next character. A state that cannot consume it is dropped, a state that can is replaced by the closure of its successor, and the set never has to remember which row it came from.</figcaption>
+</figure>
+
+<details>
+  <summary>Predict: run <code>a*a*a*b</code> against a string of a's. How many states are live after each <code>a</code>, and does the number depend on how many a's there are?</summary>
+  <p>Four, always: the three <code>a</code> states and the <code>b</code>. Of the machine's eight states, three are splits that are never stored and one is the match state, which only goes live after a <code>b</code>. After each <code>a</code> every <code>a</code> state leads back through its own split and the splits after it, and the closure is the same four states it was before. The recursive matcher had about n³ pending attempts on this input; the live set has four entries whatever n is.</p>
+</details>
+
+<h2 id="why-it-is-linear"><a class="anchor" href="#why-it-is-linear" aria-label="Link to this section">#</a>Why it is linear</h2>
+
+<p>The bound is two sentences of arithmetic. Before each character the live set holds at most m+1 states, because the machine has no more than that and <code>seen</code> refuses a second copy of any of them. Following one state's arrow costs one call to <code>add_state</code>, which touches each state at most once per character for the same reason. So the work per character is at most a small multiple of m+1, a number fixed when the pattern was compiled, and the total for a text of n characters is at most a multiple of n·(m+1). Cox: <a href="https://swtch.com/~rsc/regexp/regexp1.html" target="_blank" rel="noopener">"in the worst case, the NFA might be in every state at each step, but this results in at worst a constant amount of work independent of the length of the string"</a>, so the input can be as long as you like and the time stays linear in it. With both variables named, "for a regular expression of length m run on text of length n, the Thompson NFA requires O(mn) time".<label for="sn-3-1" class="margin-toggle sidenote-number"></label><input type="checkbox" id="sn-3-1" class="margin-toggle"><span class="sidenote">Cox swaps the letters between articles. In the 2009 piece n is the program size and m the input length, so read the bound in whichever article you are holding before quoting it.</span> The give-back loops of chapter 1 had no such number; their pending alternatives grew with the text.</p>
+
+<p>The four functions of Listing 3-1 take a start state, and a reader of the library should not have to compile one. Listing 3-3 is the whole public face of <code>tinyre</code>, with the names Python's <code>re</code> uses.</p>
+
+<figure class="listing" id="listing-3-3">
+<div class="file">code/tinyre.py</div>
+<pre><code class="language-python numbered"><span class="line"><span class="s">"""The public face of the engine: compile once, match many times."""</span></span>
+<span class="line"><span class="k">from</span> parse <span class="k">import</span> parse</span>
+<span class="line"><span class="k">from</span> machine <span class="k">import</span> compile_pattern</span>
+<span class="line"><span class="k">import</span> simulate</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">class</span> <span class="f">Pattern</span>:</span>
+<span class="line">    <span class="k">def</span> <span class="f">__init__</span>(self, source):</span>
+<span class="line">        self.source = source</span>
+<span class="line">        self.start = compile_pattern(parse(source))</span>
+<span class="line"></span>
+<span class="line">    <span class="k">def</span> <span class="f">fullmatch</span>(self, text):</span>
+<span class="line">        <span class="k">return</span> simulate.fullmatch(self.start, text)</span>
+<span class="line"></span>
+<span class="line">    <span class="k">def</span> <span class="f">search</span>(self, text):</span>
+<span class="line">        <span class="k">return</span> simulate.search(self.start, text)</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">compile</span>(source):</span>
+<span class="line">    <span class="k">return</span> Pattern(source)</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">fullmatch</span>(source, text):</span>
+<span class="line">    <span class="k">return</span> Pattern(source).fullmatch(text)</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">search</span>(source, text):</span>
+<span class="line">    <span class="k">return</span> Pattern(source).search(text)</span></code><button class="copy" type="button" aria-label="Copy listing 3-3">Copy</button></pre>
+<figcaption><span class="num">Listing 3-3.</span> The public API. Compile once in <code>Pattern</code>, or once per call through the module functions.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
+</figure>
+
+<p>The module functions recompile on every call, which is the convenience <code>re.fullmatch</code> offers too; the <code>Pattern</code> object is for the loop that runs one pattern over many texts, and the benchmark below uses it so that the parse is not in the timing. Nothing here has the name <code>match</code>. The prefix question chapter 1's <code>match_here</code> answered is put to the two functions that do exist on the third and fourth lines of Listing 3-4.</p>
+
+<figure class="listing" id="listing-3-4">
+<pre><code class="language-python numbered"><span class="line"><span class="k">import</span> tinyre</span>
+<span class="line"></span>
+<span class="line"><span class="t">print</span>(tinyre.fullmatch(<span class="s">"(a|b)*c"</span>, <span class="s">"abbac"</span>))</span>
+<span class="line"><span class="t">print</span>(tinyre.search(<span class="s">"(a|b)*c"</span>, <span class="s">"xxc"</span>))</span>
+<span class="line"><span class="t">print</span>(tinyre.fullmatch(<span class="s">"a*b"</span>, <span class="s">"ba"</span>))</span>
+<span class="line"><span class="t">print</span>(tinyre.search(<span class="s">"a*b"</span>, <span class="s">"ba"</span>))</span>
+<span class="line">pattern = tinyre.compile(<span class="s">"a*a*a*b"</span>)</span>
+<span class="line"><span class="t">print</span>(pattern.fullmatch(<span class="s">"a"</span> * <span class="n">320</span>))</span></code><button class="copy" type="button" aria-label="Copy listing 3-4">Copy</button></pre>
+<pre class="output" aria-label="Output">True
+True
+False
+True
+False</pre>
+<figcaption><span class="num">Listing 3-4.</span> <code>fullmatch</code> and <code>search</code> on the inputs chapter 1 used, plus the pattern chapter 1 could not finish.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
+</figure>
+
+<p>Zero a's and one <code>b</code> fit the front of <code>ba</code>, which is why chapter 1's <code>match_here</code> said <code>True</code> to it. <code>fullmatch</code> says <code>False</code> because the text is not exhausted when the match state goes live, and <code>search</code> says <code>True</code> because it may stop early. The last line is the 822.2 ms case, and Listing 3-5 times it. It runs <code>code/bench.py</code>, which takes the best of three runs of each matcher with <code>time.perf_counter</code>, on the grounds the <code>timeit</code> documentation gives: the minimum "gives a lower bound for how fast your machine can run the given code snippet", and higher values <a href="https://docs.python.org/3/library/timeit.html" target="_blank" rel="noopener">"are typically not caused by variability in Python's speed, but by other processes interfering with your timing accuracy"</a>. Read the columns as curves, not as a ranking.</p>
+
+<figure class="listing" id="listing-3-5">
+<div class="file">code/bench.py</div>
+<pre><code class="language-python numbered"><span class="line"><span class="s">"""Time the three matchers on the same family of inputs. Best of three runs."""</span></span>
+<span class="line"><span class="k">import</span> re</span>
+<span class="line"><span class="k">import</span> time</span>
+<span class="line"><span class="k">import</span> backtrack</span>
+<span class="line"><span class="k">import</span> tinyre</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">timed</span>(fn, repeats=<span class="n">3</span>):</span>
+<span class="line">    best = <span class="t">float</span>(<span class="s">"inf"</span>)</span>
+<span class="line">    <span class="k">for</span> _ <span class="k">in</span> <span class="t">range</span>(repeats):</span>
+<span class="line">        t0 = time.perf_counter()</span>
+<span class="line">        fn()</span>
+<span class="line">        best = <span class="t">min</span>(best, time.perf_counter() - t0)</span>
+<span class="line">    <span class="k">return</span> best * <span class="n">1000</span></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">if</span> __name__ == <span class="s">"__main__"</span>:</span>
+<span class="line">    pattern = <span class="s">"a*a*a*b"</span></span>
+<span class="line">    compiled = tinyre.compile(pattern)</span>
+<span class="line">    <span class="t">print</span>(<span class="s">f"{'n':&gt;6} {'backtrack':&gt;10} {'tinyre':&gt;10} {'re':&gt;10}"</span>)</span>
+<span class="line">    <span class="k">for</span> n <span class="k">in</span> (<span class="n">40</span>, <span class="n">80</span>, <span class="n">160</span>, <span class="n">320</span>):</span>
+<span class="line">        text = <span class="s">"a"</span> * n</span>
+<span class="line">        row = (timed(<span class="k">lambda</span>: backtrack.match_here(pattern, text)),</span>
+<span class="line">               timed(<span class="k">lambda</span>: compiled.fullmatch(text)),</span>
+<span class="line">               timed(<span class="k">lambda</span>: re.fullmatch(pattern, text)))</span>
+<span class="line">        <span class="t">print</span>(<span class="s">f"{n:&gt;6} {row[0]:&gt;8.1f}ms {row[1]:&gt;8.2f}ms {row[2]:&gt;8.3f}ms"</span>)</span></code><button class="copy" type="button" aria-label="Copy listing 3-5">Copy</button></pre>
+<pre class="output" aria-label="Output">     n  backtrack     tinyre         re
+    40      1.9ms     0.04ms    0.015ms
+    80     13.7ms     0.07ms    0.095ms
+   160    106.6ms     0.15ms    0.674ms
+   320    825.3ms     0.29ms    4.937ms</pre>
+<figcaption><span class="num">Listing 3-5.</span> Three matchers on <code>a*a*a*b</code>, best of three. Same machine and interpreter as chapter 1.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
+</figure>
+
+<p>Doubling the input multiplies the first column by about eight and the second by about two. The third column is the one to look at twice. Python's <code>re</code> multiplies by six to seven per doubling on this pattern, the same cubic shape as the recursive matcher with a much smaller constant, because <code>re</code> backtracks and three adjacent stars cost it three nested loops as well. At n=320 <code>tinyre</code> is seventeen times faster than <code>re</code>, and it would be a mistake to read that as <code>tinyre</code> being fast. It wins here because this one pattern makes <code>re</code> do cubic work, and a Python simulator doing linear work overtakes a C backtracker doing cubic work somewhere between n=40 and n=80. Listing 3-6 chooses a pattern on which both are linear.</p>
+
+<figure class="listing" id="listing-3-6">
+<pre><code class="language-python numbered"><span class="line"><span class="k">import</span> re</span>
+<span class="line"><span class="k">import</span> time</span>
+<span class="line"><span class="k">import</span> tinyre</span>
+<span class="line"></span>
+<span class="line">n = <span class="n">800_000</span></span>
+<span class="line">text = <span class="s">"a"</span> * n</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">timed</span>(fn, repeats=<span class="n">3</span>):</span>
+<span class="line">    best = <span class="t">float</span>(<span class="s">"inf"</span>)</span>
+<span class="line">    <span class="k">for</span> _ <span class="k">in</span> <span class="t">range</span>(repeats):</span>
+<span class="line">        t0 = time.perf_counter()</span>
+<span class="line">        fn()</span>
+<span class="line">        best = <span class="t">min</span>(best, time.perf_counter() - t0)</span>
+<span class="line">    <span class="k">return</span> best * <span class="n">1000</span></span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line">compiled = tinyre.compile(<span class="s">"a*b"</span>)</span>
+<span class="line"><span class="t">print</span>(<span class="s">f"a*b against {n:,} a's, best of three"</span>)</span>
+<span class="line"><span class="t">print</span>(<span class="s">f"re      {timed(lambda: re.fullmatch('a*b', text)):8.1f} ms"</span>)</span>
+<span class="line"><span class="t">print</span>(<span class="s">f"tinyre  {timed(lambda: compiled.fullmatch(text)):8.1f} ms"</span>)</span></code><button class="copy" type="button" aria-label="Copy listing 3-6">Copy</button></pre>
+<pre class="output" aria-label="Output">a*b against 800,000 a&#x27;s, best of three
+re           0.7 ms
+tinyre     315.8 ms</pre>
+<figcaption><span class="num">Listing 3-6.</span> <code>a*b</code> against 800,000 a's, the pattern on which <code>re</code> has nothing to backtrack over.<span class="tag verified" title="This listing was executed and its output checked">verified</span></figcaption>
+</figure>
+
+<p>On <code>a*b</code>, <code>re</code> is about 450 times faster than <code>tinyre</code>. Both are linear; <code>re</code> runs a C loop over a run of a's, and <code>tinyre</code> builds a Python list and a Python set per character. The claim this chapter can support is the shape of the curve, not its height, and the shape was the whole problem in both outages of chapter 1. Cox's 2007 article reports Perl taking over sixty seconds on a 29-character string where his C simulator took twenty microseconds. The article does not say what machine ran it, and the numbers are two decades old. That is why this book measures instead of quoting.</p>
+
+<h2 id="the-cycle"><a class="anchor" href="#the-cycle" aria-label="Link to this section">#</a>The cycle</h2>
+
+<p>The parser of chapter 2 rejects <code>a**</code> and accepts <code>(a*)*b</code>. The parentheses make the inner star an atom, and the outer star quantifies that atom. Compiled, the outer split's <code>out</code> arrow leads to the inner split, and the inner split's <code>alt</code> arrow leads back to the outer split. No character state sits between them. Two splits point at each other. An <code>add_state</code> with no memory walks outer, inner, stores <code>a</code>, takes the inner split's second arm back to outer, and goes round again until Python stops it. Listing 3-7 is Listing 3-1's <code>add_state</code> with the <code>seen</code> check removed and the two arms folded into one loop, so that the traceback collapses to a single repeated line. Read it from the bottom.</p>
+
+<figure class="listing" id="listing-3-7">
+<pre><code class="language-python numbered"><span class="line"><span class="k">from</span> parse <span class="k">import</span> parse</span>
+<span class="line"><span class="k">from</span> machine <span class="k">import</span> compile_pattern</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="k">def</span> <span class="f">add_state</span>(states, s):</span>
+<span class="line">    <span class="s">"""Listing 3-1's add_state with the `seen` check removed."""</span></span>
+<span class="line">    <span class="k">if</span> s <span class="k">is</span> <span class="k">None</span>:</span>
+<span class="line">        <span class="k">return</span></span>
+<span class="line">    <span class="k">if</span> s.ch <span class="k">is</span> <span class="k">None</span> <span class="k">and</span> <span class="k">not</span> s.matched:</span>
+<span class="line">        <span class="k">for</span> arm <span class="k">in</span> (s.out, s.alt):              <span class="c"># a split: take both arms</span></span>
+<span class="line">            add_state(states, arm)</span>
+<span class="line">    <span class="k">else</span>:</span>
+<span class="line">        states.append(s)</span>
+<span class="line"></span>
+<span class="line"></span>
+<span class="line">add_state([], compile_pattern(parse(<span class="s">"(a*)*b"</span>)))</span></code><button class="copy" type="button" aria-label="Copy listing 3-7">Copy</button></pre>
+<pre class="output stderr" aria-label="Output">Traceback (most recent call last):
+  File &quot;snippet.py&quot;, line 16, in &lt;module&gt;
+    add_state([], compile_pattern(parse(&quot;(a*)*b&quot;)))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;snippet.py&quot;, line 11, in add_state
+    add_state(states, arm)
+    ~~~~~~~~~^^^^^^^^^^^^^
+  File &quot;snippet.py&quot;, line 11, in add_state
+    add_state(states, arm)
+    ~~~~~~~~~^^^^^^^^^^^^^
+  File &quot;snippet.py&quot;, line 11, in add_state
+    add_state(states, arm)
+    ~~~~~~~~~^^^^^^^^^^^^^
+  [Previous line repeated 996 more times]
+RecursionError: maximum recursion depth exceeded</pre>
+<figcaption><span class="num">Listing 3-7.</span> <code>add_state</code> without <code>seen</code>, on the one shape of machine that has a cycle with no character in it.<span class="tag error-demo" title="This listing fails on purpose; the error shown is the real one">raises, as intended</span></figcaption>
+</figure>
+
+<p>A thousand frames, one line, and no character consumed in any of them. Thompson met this in 1968. "Code compiled for a** will go into a loop due to the closure operator on an operand containing the null regular expression", his closing notes say, and he offers two ways out: refuse the expression at "the syntax sieve", since "in most practical applications, this would not be a serious restriction", or recognise the empty string as its own operand, so that <a href="https://www.oilshell.org/archive/Thompson-1968.pdf" target="_blank" rel="noopener">"a** is compiled as λ|aa*(aa*)*"</a>. The parser took the first way out for <code>a**</code> and left <code>(a*)*</code> alone, on purpose, because the same notes contain a third way that rewrites nothing. A state entered twice leads to a redundant search, Thompson observes: "Such redundant searches can be easily terminated by having NNODE (CNODE) search NLIST (CLIST) for a matching entry before it puts an entry in the list. This now gives a maximum size on the number of entries that can be in the lists." That is <code>seen</code>. Cox's generation number is the same check in constant time, and because both check <em>before</em> recursing, a cycle of splits ends on its second visit to the first split.<label for="sn-3-2" class="margin-toggle sidenote-number"></label><input type="checkbox" id="sn-3-2" class="margin-toggle"><span class="sidenote">RE2 rewrites a star over a subexpression that can match the empty string as <code>(a+)?</code> at compile time, and its <a href="https://raw.githubusercontent.com/google/re2/main/re2/compile.cc">source comment</a> gives a reason that is not termination: "one Alt isn't enough to guarantee correct priority ordering within the transitive closure". Which of two matches an engine prefers is a question this book's yes-or-no matcher never has to answer.</span></p>
+
+<div class="callout">
+  <div class="title">This trips people up</div>
+  <p>"The <code>seen</code> set is an optimisation that stops a state being counted twice, and the cycle is a separate bug that needs a separate guard." Both halves are wrong in the same way. A state reached twice in one step by two different paths is one state, and dropping the second arrival is what keeps the live set at m+1 entries. A state reached twice by the same path going round a cycle is also one state, and dropping the second arrival is what ends the walk. One check, two consequences, and Thompson wrote both into the same closing notes. Remove it and you lose the bound and the termination together.</p>
+</div>
+
+<details>
+  <summary>Predict: with <code>seen</code> in place, what does <code>tinyre.fullmatch("(a*)*b", "aaab")</code> return, and how many states are live after each <code>a</code>?</summary>
+  <p><code>True</code>, with two states live after every <code>a</code>: the <code>a</code> state and the <code>b</code> state. The closure from the outer split visits both splits once each, stores <code>a</code>, follows the outer split's second arm to <code>b</code>, and refuses to enter either split again. The pattern that hangs a careless simulator costs this one exactly as much per character as <code>a*b</code> does.</p>
+</details>
+
+<h2 id="what-the-set-forgets"><a class="anchor" href="#what-the-set-forgets" aria-label="Link to this section">#</a>What the set forgets</h2>
+
+<p>Listing 3-2 printed the same three states after <code>a</code> and after <code>b</code>, and the two sets are not merely equal in content. The machine cannot tell them apart. Nothing in the second records that <code>s4</code> consumed the <code>b</code>, or that <code>s3</code> consumed the <code>a</code> before it, or that the text so far was <code>ab</code> rather than <code>ba</code>. The live set records <em>which</em> states are live and not <em>how</em> each became live, and for a yes-or-no matcher that is the right thing to forget, because it is what holds the set to m+1 entries.</p>
+
+<p>A capture group needs the <em>how</em>. To report what <code>(a|b)*</code> last matched, an engine has to know where in the text each path was when it entered the group and when it left, and two paths in the same state can have entered at different places. Rob Pike's answer, in the text editor <code>sam</code> in 1987, was to make each entry in the list a thread carrying its own saved positions. Cox's account of that design explains why one entry per state still suffices: <a href="https://swtch.com/~rsc/regexp/regexp2.html" target="_blank" rel="noopener">"the saved pointers do not influence future execution: they only record past execution. Two threads with the same PC will execute identically even if they have different saved pointers; thus only one thread per PC needs to be kept"</a>. That design is the <strong>Pike VM</strong>, and the bound survives it. What does not survive unchanged is the constant. The engine has to copy submatch sets from thread to thread, and Cox says of RE2's version that <a href="https://swtch.com/~rsc/regexp/regexp3.html" target="_blank" rel="noopener">"it can be slower in common cases than a backtracker like PCRE"</a>.</p>
+
+<p>A backreference needs the <em>how</em> to decide the future, and that is the line this design cannot cross. The pattern <code>(a|b)*\1</code> has to match whatever the group matched, so two threads in the same state with different captures will behave differently from here on, and the argument for keeping one of them fails: "an implementation has to keep both threads, a potentially exponential blowup in state". No one knows how to do better. Matching with backreferences is NP-complete, in Cox's phrasing, so "if someone did find an efficient implementation, that would be major news to computer scientists". Chapter 4 lists everything <code>tinyre</code> gave up in exchange for its bound, and what the engines that made the same trade do about it.</p>
+
+<h2 id="practice-3"><a class="anchor" href="#practice-3" aria-label="Link to this section">#</a>Practice</h2>
+
+<div class="exercises">
+  <div class="exercise">
+    <span class="label">Exercise 1</span>
+    <p>Make <code>fullmatch</code> report how many steps it took as well as whether it matched. Fill in the blank.</p>
+
+
+<figure class="listing">
+<pre><code class="language-python"><span class="k">def</span> <span class="f">fullmatch_counting</span>(start, text):
+    current, steps = [], <span class="n">0</span>
+    add_state(current, start, <span class="t">set</span>())
+    <span class="k">for</span> ch <span class="k">in</span> text:
+        current = step(current, ch)
+        ________
+        <span class="k">if</span> <span class="k">not</span> current:
+            <span class="k">return</span> <span class="k">False</span>, steps
+    <span class="k">return</span> <span class="t">any</span>(s.matched <span class="k">for</span> s <span class="k">in</span> current), steps</code><button class="copy" type="button" aria-label="Copy">Copy</button></pre>
+<figcaption><span class="tag unverified">illustrative</span></figcaption>
+</figure>
+
+    <details><summary>Solution</summary><p><code>steps += 1</code>. The count is at most <code>len(text)</code>, and equals it whenever the set never empties. Compare exercise 3 of chapter 1, where the count of calls for <code>a*a*b</code> was (n+2)(n+3)/2: that number counted paths, and this one counts characters. The number of paths never appears anywhere in the simulator, which is why it never pays for them.</p></details>
+  </div>
+  <div class="exercise">
+    <span class="label">Exercise 2</span>
+    <p>Listing 3-1's <code>search</code> says whether a match exists. Finish this version so that it returns the index just past the end of the earliest-ending match, or <code>None</code>.</p>
+
+<figure class="listing">
+<pre><code class="language-python"><span class="k">def</span> <span class="f">search_end</span>(start, text):
+    current, seen = [], <span class="t">set</span>()
+    add_state(current, start, seen)
+    <span class="k">for</span> i, ch <span class="k">in</span> <span class="t">enumerate</span>(text):
+        ...
+    ...</code><button class="copy" type="button" aria-label="Copy">Copy</button></pre>
+<figcaption><span class="tag unverified">illustrative</span></figcaption>
+</figure>
+
+    <details><summary>Solution</summary><p>Inside the loop, return <code>i</code> if any live state is the match state, then step and re-enter the start state as <code>search</code> does. After the loop, return <code>len(text)</code> if the match state is live and <code>None</code> otherwise. Notice what you cannot return: the start of that match. The set does not record where a path began, so this is the earliest end, which is neither the leftmost match nor the longest.</p></details>
+  </div>
+  <div class="exercise">
+    <span class="label">Exercise 3</span>
+    <p>Write <code>findall(start, text)</code> returning the spans of non-overlapping matches, leftmost first and, among matches starting at the same place, longest. Say why you chose longest.</p>
+    <details><summary>Solution</summary><p>Try each start position from the left. From a start, run the anchored simulation without re-entering the start state, record the last position at which the match state was live, and stop when the set empties. If a match was recorded, emit the span and continue from its end, or from end+1 when the match was empty; otherwise move the start one character on. Longest is the choice the set can make: it does not know which alternative arrived first, so it cannot prefer <code>a</code> over <code>ab</code> in <code>a|ab</code>, but it can see the last position at which anything matched. Cox notes that POSIX defines its matches that way and Perl does not. The cost is up to n starts of up to n steps each, which is the O(m·n²) worst case the Rust <code>regex</code> documentation gives for its iterators.</p></details>
+  </div>
+  <div class="exercise">
+    <span class="label">Exercise 4</span>
+    <p>"A set of live states, advanced one input at a time, with a visited set to stop double counting" is not a regex idea. Name two other places where the same structure appears, and say what plays the part of the character.</p>
+    <details><summary>Solution</summary><p>Breadth-first search over a graph: the frontier is the live set, the visited set is <code>seen</code>, and the layer number is the character position. A lexer generator such as <code>lex</code> builds its tables from exactly these sets of states, one per input character, giving each distinct set a number; the set is what a table entry names. An event-driven state machine that can be in more than one state at once, a protocol handler or a game controller, is the same thing with a wider alphabet. Each time, the cost per input is bounded by the number of distinct states, not by the number of ways to reach them.</p></details>
+  </div>
+</div>
+
+<h2 id="mental-model-3"><a class="anchor" href="#mental-model-3" aria-label="Link to this section">#</a>Mental model</h2>
+
+<ul>
+<li>The machine is run as a set of live states. Each character maps the set before it to the set after it, and the old set is discarded.</li>
+<li>The simulator passes through a split at the moment it would otherwise store it, so the live set holds only character states and the match state.</li>
+<li>The <code>seen</code> check refuses a state that is already in the list. That bounds the list at m+1 entries and terminates a cycle of splits; it is one check with two consequences.</li>
+<li>Work per character is bounded by the pattern, so a text of n characters costs at most a multiple of n·(m+1). The number of paths never appears in the cost.</li>
+<li>Unanchored search re-enters the start state before every character, inside the same bound.</li>
+<li>The set records which states are live, not how they became live. Captures need threads that carry positions; backreferences need more than any known bound allows.</li>
+</ul>
+
+<p><strong>Terms introduced:</strong> live set — the set of states the machine occupies before reading the next character, holding only states that can consume a character plus the match state; epsilon closure — every state reachable from a given state along split arrows, without consuming a character; simulation — running the machine over the text by advancing every live state together, rather than one path at a time; step — the function from the live set before a character to the live set after it; unanchored search — matching that may begin at any position, done here by re-entering the start state before every character; Pike VM — Rob Pike's form of the simulation in which each live state is a thread carrying its saved positions, so that captures can be reported.</p>
+
+<h2 id="one-opinion-3"><a class="anchor" href="#one-opinion-3" aria-label="Link to this section">#</a>One opinion</h2>
+
+<p>I think the set simulation should be taught before the DFA, and usually it is taught after, if at all. The section of Cox's article headed <a href="https://swtch.com/~rsc/regexp/regexp1.html" target="_blank" rel="noopener">"Caching the NFA to build a DFA"</a> says what a DFA state is: a set of NFA states, computed once and kept. A reader who has run Listing 3-2 by hand already knows the function being memoised, and the DFA arrives as a cache in front of it. Taught the other way round, the DFA is a table that fell from the sky, the subset construction is a proof about it, and the reader never sees the thing the table was saving them from computing.</p>
+
+<h2 id="going-deeper-3"><a class="anchor" href="#going-deeper-3" aria-label="Link to this section">#</a>Going deeper</h2>
+
+<ul>
+<li>Cox, <a href="https://swtch.com/~rsc/regexp/regexp1.html" target="_blank" rel="noopener">"Regular Expression Matching Can Be Simple And Fast"</a> (2007), second half. The C simulator this chapter's Python follows, the <code>listid</code> trick, and the section on caching the sets into a DFA, including the note that the cache can be thrown away when it grows too large.</li>
+<li>Cox, <a href="https://swtch.com/~rsc/regexp/regexp2.html" target="_blank" rel="noopener">"Regular Expression Matching: the Virtual Machine Approach"</a> (2009). The Pike VM: threads, saved positions, and why one thread per state is still enough. Read it before adding captures to <code>tinyre</code>.</li>
+<li>Gallant, <a href="https://burntsushi.net/regex-internals/" target="_blank" rel="noopener">"Regex engine internals as a library"</a> (2023). How Rust's <code>regex</code> crate stacks a Pike VM, a bounded backtracker, a one-pass DFA and a lazy DFA behind one interface, and why "only the PikeVM is required".</li>
+</ul>
+
+<p>On every example in this chapter, <code>tinyre</code> agrees with <code>re</code>. Chapter 4 asks whether it agrees on every pattern of up to four characters, and the first version did not.</p>
+<nav class="chapter-nav" aria-label="Chapter navigation">
+<a class="prev" href="ch02-pattern-to-machine.html"><span class="dir">Previous</span><span class="t">From Pattern to Machine</span></a>
+</nav>
+</main>
+</div>
+<dialog id="search" aria-label="Search the book">
+  <div class="bar"><input id="search-input" type="search" placeholder="Search the book…" autocomplete="off"><button class="close" type="button" aria-label="Close search">Close</button></div>
+  <ul id="search-results"></ul>
+</dialog>
+<script src="assets/search.js"></script>
+<script src="assets/book.js"></script>
+</body></html>

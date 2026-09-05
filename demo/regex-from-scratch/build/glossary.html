@@ -22,6 +22,8 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 </li>
 <li><a href="ch02-pattern-to-machine.html"><span class="chap-num">2</span>From Pattern to Machine</a>
 </li>
+<li><a href="ch03-all-paths-at-once.html"><span class="chap-num">3</span>All Paths at Once</a>
+</li>
 </ol>
 <ol class="extras"><li><a href="glossary.html" aria-current="page">Glossary</a></li></ol>
 </nav></details>
@@ -37,17 +39,23 @@ if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)
 <dt id="term-backtracking">backtracking</dt><dd>a search strategy in which each choice point keeps its untried alternatives and a failure returns control to the nearest one that still has some <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-catastrophic-backtracking">catastrophic backtracking</dt><dd>the failing case of a backtracking matcher whose cost grows exponentially with the input <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-continuation-style">continuation style</dt><dd>this book's name for compiling each node with the state that follows it already in hand, so that no arrow is ever left dangling <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-epsilon-closure">epsilon closure</dt><dd>every state reachable from a given state along split arrows, without consuming a character <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-fragment">fragment</dt><dd>a sub-machine with one entry and one exit, produced by compiling one node <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-give-back">give back</dt><dd>a star surrendering one character of its run so the rest of the pattern can try again <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-live-set">live set</dt><dd>the set of states the machine occupies before reading the next character, holding only states that can consume a character plus the match state <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-match-state">match state</dt><dd>the state with no arrows, whose occupation at the end of the text means the pattern matched <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-match-here">match_here</dt><dd>the recursive core of the matcher, which asks only whether the pattern matches at the start of the text <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
+<dt id="term-pike-vm">Pike VM</dt><dd>Rob Pike's form of the simulation in which each live state is a thread carrying its saved positions, so that captures can be reported <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-polynomial-blow-up">polynomial blow-up</dt><dd>the failing case of adjacent quantifiers, whose cost grows as a power of the input equal to the number of quantifiers <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-precedence-level">precedence level</dt><dd>one row of the operator-binding order, which in a recursive-descent parser is one method <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-recursive-descent">recursive descent</dt><dd>a parser made of one function per grammar rule, each calling the rules it depends on <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-simulation">simulation</dt><dd>running the machine over the text by advancing every live state together, rather than one path at a time <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-split-state">split state</dt><dd>a state with two arrows and no character, which the machine follows both at once <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
 <dt id="term-star-height">star height</dt><dd>the deepest nesting of stars or pluses in a pattern <a class="where" href="ch01-matching-by-hand.html">ch. 1</a></dd>
 <dt id="term-state">state</dt><dd>a node of the machine, holding at most one character and at most two arrows <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-step">step</dt><dd>the function from the live set before a character to the live set after it <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 <dt id="term-thompsons-construction">Thompson&#x27;s construction</dt><dd>the wiring of fragments into a machine with one state per character or metacharacter, from Thompson's 1968 paper <a class="where" href="ch02-pattern-to-machine.html">ch. 2</a></dd>
+<dt id="term-unanchored-search">unanchored search</dt><dd>matching that may begin at any position, done here by re-entering the start state before every character <a class="where" href="ch03-all-paths-at-once.html">ch. 3</a></dd>
 </dl>
 </main>
 </div>

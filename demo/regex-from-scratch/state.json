@@ -132,6 +132,81 @@
         ],
         "prose_py_word_count": 3536
       }
+    },
+    "ch03": {
+      "status": "drafted",
+      "file": "src/ch03-all-paths-at-once.md",
+      "summary": "The reader can now run chapter 2's machine over a text as a set of live states, one step per character, explain why the work per character is bounded by the pattern (at most m+1 states, so O(n*m) overall), and name the one check that both bounds the live set and terminates a cycle of splits. code/simulate.py defines add_state (follows splits eagerly, dedups by id(s) in seen), step (live set before a character to live set after it), fullmatch and an unanchored search that re-enters the start state before every character. code/tinyre.py is the public API: compile, fullmatch, search and class Pattern with fullmatch and search methods. Listing 3-5 is code/bench.py, backtrack vs tinyre vs re on a*a*a*b; Listing 3-6 measures a*b at n=800,000 where re is about 450x faster; Listing 3-7 removes seen and shows the RecursionError on (a*)*b. Figure 3-1 is the live-set timeline of (a|b)*c over abc. The set records which states are live, not how: captures need the Pike VM's threads, backreferences cannot be done this way (NP-complete per Cox). Promised for chapter 4: exhaustive comparison against re on every pattern up to four characters, the mismatch the first version had, and the full list of what tinyre gave up and what RE2, Go and Rust do instead.",
+      "terms": [
+        "live set",
+        "epsilon closure",
+        "simulation",
+        "step",
+        "unanchored search",
+        "Pike VM"
+      ],
+      "numbers": {
+        "machine": "Apple Silicon Mac, CPython 3.14, best of three",
+        "code_lines": {
+          "simulate.py": 44,
+          "tinyre.py": 28,
+          "bench.py": 26
+        },
+        "bench_a*a*a*b_ms": {
+          "40": {
+            "backtrack": 1.9,
+            "tinyre": 0.04,
+            "re": 0.015
+          },
+          "80": {
+            "backtrack": 13.7,
+            "tinyre": 0.07,
+            "re": 0.095
+          },
+          "160": {
+            "backtrack": 106.6,
+            "tinyre": 0.15,
+            "re": 0.674
+          },
+          "320": {
+            "backtrack": 825.3,
+            "tinyre": 0.29,
+            "re": 4.937
+          }
+        },
+        "bench_ratio_per_doubling": {
+          "backtrack": "7.2x to 7.8x (cubic)",
+          "tinyre": "1.75x to 2.1x (linear)",
+          "re": "6.3x to 7.3x (cubic)"
+        },
+        "tinyre_vs_re_at_320": "tinyre 17x faster",
+        "a*b_n800000_ms": {
+          "re": 0.7,
+          "tinyre": 315.8
+        },
+        "a*b_re_vs_tinyre": "re about 450x faster",
+        "live_set_size_a*a*a*b": 4,
+        "live_set_size_(a|b)*c": 3,
+        "live_set_size_(a*)*b": 2,
+        "cycle_recursion_frames": "3 shown + 996 repeated, limit 1000",
+        "listings": {
+          "3-1": "file=code/simulate.py",
+          "3-2": "run live-set trace of (a|b)*c over abc",
+          "3-3": "file=code/tinyre.py",
+          "3-4": "run fullmatch/search demo",
+          "3-5": "run nondet=output timeout=120 file=code/bench.py",
+          "3-6": "run nondet=output a*b at n=800,000",
+          "3-7": "expect-error RecursionError, add_state without seen on (a*)*b"
+        },
+        "figures": {
+          "3-1": "live-set timeline of (a|b)*c over abc, states numbered as Listing 2-6"
+        },
+        "sidenotes": [
+          "sn-3-1",
+          "sn-3-2"
+        ],
+        "prose_py_word_count": 3906
+      }
     }
   },
   "notes": "regenerated 2026-09-05 with the improved skill; scope reused from the approved first edition",

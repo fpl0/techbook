@@ -136,8 +136,13 @@ def check(chapters: list[Chapter]) -> list[dict]:
                     break
 
     # ── chapter references ───────────────────────────────────────────────────
+    # Checked per sentence, not per line: a sidenote that names chapter 3 in
+    # one sentence and quotes an outage's numbers in the next is not
+    # attributing those numbers to chapter 3.
+    SENT = re.compile(r"[^.!?]+[.!?]*")
     for ch in chapters:
-        for n, line in ch.lines:
+        for n, whole in ch.lines:
+          for line in SENT.findall(whole):
             for m in CHAPTER_REF.finditer(line):
                 target = int(m.group(1))
                 if target not in by_number:
