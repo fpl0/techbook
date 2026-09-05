@@ -226,7 +226,7 @@ Thompson's paper has two node types, "NNODE matches a single character" and "CNO
     <rect x="448" y="64" width="128" height="48" rx="4"/>
   </g>
 
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="96"  y="88">Char('a')</text>
     <text x="288" y="88">out</text>
@@ -234,7 +234,7 @@ Thompson's paper has two node types, "NNODE matches a single character" and "CNO
     <text x="712" y="40">out</text>
     <text x="712" y="136">alt</text>
   </g>
-  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-muted)"
+  <g font-family="var(--font-ui)" font-size="15" fill="var(--dia-muted)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="200" y="76">consumes a</text>
     <text x="96"  y="144">one arrow, one character</text>
@@ -333,7 +333,7 @@ def compile_pattern(node):
     <rect x="648" y="296" width="96" height="40" rx="4"/>
   </g>
 
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="56"  y="84">a</text>
     <text x="168" y="84">b</text>
@@ -347,7 +347,7 @@ def compile_pattern(node):
     <text x="424" y="228" fill="var(--dia-accent)">Split</text>
     <text x="568" y="268" fill="var(--dia-accent)">Split</text>
   </g>
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-muted)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-muted)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="296" y="84">next</text>
     <text x="728" y="84">next</text>
@@ -355,7 +355,7 @@ def compile_pattern(node):
     <text x="440" y="316">next</text>
     <text x="696" y="316">next</text>
   </g>
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="start" dominant-baseline="middle">
     <text x="24"  y="24">ab</text>
     <text x="424" y="24">a|b</text>

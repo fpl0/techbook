@@ -172,7 +172,7 @@ Each star is a loop over how many characters it keeps, and each loop sits inside
     <rect x="208" y="264" width="384" height="48" rx="4"/>
   </g>
 
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="400" y="36">match_star('a', 'a*b', 'aaa')</text>
     <text x="400" y="56" fill="var(--dia-muted)">first star keeps 3, then gives back</text>
@@ -187,7 +187,7 @@ Each star is a loop over how many characters it keeps, and each loop sits inside
     <text x="400" y="288" fill="var(--dia-warn)">match_here('b', suffix) fails 1 + 2 + 3 + 4 = 10 times</text>
   </g>
 
-  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-accent)"
+  <g font-family="var(--font-ui)" font-size="15" fill="var(--dia-accent)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="216" y="104">keep 3</text>
     <text x="328" y="104">give back 1</text>

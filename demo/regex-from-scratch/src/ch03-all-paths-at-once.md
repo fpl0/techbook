@@ -142,27 +142,27 @@ The set before `a` and the set after it are the same three states, and so is the
     <rect x="224" y="264" width="320" height="48" rx="4"/>
   </g>
 
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="384" y="48">live: s3 a, s4 b, s2 c</text>
     <text x="384" y="128">live: s3 a, s4 b, s2 c</text>
     <text x="384" y="208">live: s3 a, s4 b, s2 c</text>
     <text x="384" y="288" fill="var(--dia-accent)">live: s5 Match</text>
   </g>
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="start" dominant-baseline="middle">
     <text x="24" y="48">before reading a</text>
     <text x="24" y="128">before reading b</text>
     <text x="24" y="208">before reading c</text>
     <text x="24" y="288">text exhausted</text>
   </g>
-  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-accent)"
+  <g font-family="var(--font-ui)" font-size="15" fill="var(--dia-accent)"
      text-anchor="start" dominant-baseline="middle">
     <text x="400" y="88">read a</text>
     <text x="400" y="168">read b</text>
     <text x="400" y="248">read c</text>
   </g>
-  <g font-family="var(--font-ui)" font-size="13" fill="var(--dia-muted)"
+  <g font-family="var(--font-ui)" font-size="15" fill="var(--dia-muted)"
      text-anchor="start" dominant-baseline="middle">
     <text x="576" y="40">closure from s0: s0 and s1</text>
     <text x="576" y="58">consume nothing, so skipped</text>

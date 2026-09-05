@@ -293,7 +293,7 @@ small { font-size: 0.9em; }
 /* the text column is centred; the sidenote rail overhangs to the right */
 @media (min-width: 1081px) {
   .shell { padding-left: calc(var(--rail-right) + 2.5rem + 1.5rem); }
-  figure.listing, .table-wrap { margin-left: -1.1rem; margin-right: -1.1rem; }
+  figure.listing, .table-wrap, figure > .diagram { margin-left: -1.1rem; margin-right: -1.1rem; }
 }
 
 main { grid-column: text; min-width: 0; }

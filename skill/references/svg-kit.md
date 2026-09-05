@@ -32,7 +32,7 @@ rather than twenty separate drawings.
 | Grid | snap every coordinate to multiples of 8 |
 | Stroke | `1.5` normal, `2.5` for emphasis. No other widths |
 | Box corners | `rx="4"` |
-| Label font | `var(--font-ui)` at 13–14px |
+| Label font | `var(--font-ui)` at 16px, secondary labels 15px; the 800-unit canvas renders at about 600px in the text column, so anything smaller is unreadable |
 | Colours | only the five variables below |
 | Arrowheads | one shared `<marker>` definition |
 
@@ -71,7 +71,7 @@ Copy this and adapt. It is the whole vocabulary.
     <rect x="616" y="56" width="160" height="56" rx="4"/>
   </g>
 
-  <g font-family="var(--font-ui)" font-size="14" fill="var(--dia-fg)"
+  <g font-family="var(--font-ui)" font-size="16" fill="var(--dia-fg)"
      text-anchor="middle" dominant-baseline="middle">
     <text x="104" y="84">source</text>
     <text x="400" y="84">scanner</text>
